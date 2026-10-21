@@ -126,3 +126,7 @@ This tool runs arbitrary SQL with the credentials of the logged-in user.
 - The password lives in the PHP session, on the server, and is never sent to the browser. The cookie is `HttpOnly` and `SameSite=Strict`, and every POST requires a CSRF token.
 - Only `public/` is exposed: code, configuration and templates stay outside the document root.
 - The session expires after `session_timeout` seconds of inactivity.
+
+## License
+
+Released under the [MIT License](LICENSE).

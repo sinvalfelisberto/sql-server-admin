@@ -72,4 +72,4 @@ In `app.js`, the `// ---------- Export ----------` section has `exportRows()` (d
 
 ## Contributing
 
-**Pending:** the repository defines no `CONTRIBUTING.md`, license or branch policy. The history uses descriptive commit messages in English (for example, "Add XLSX export functionality and corresponding tests").
+The project is released under the [MIT License](../LICENSE); contributions are accepted under the same terms. **Pending:** the repository defines no `CONTRIBUTING.md` or branch policy. The history uses descriptive commit messages in English (for example, "Add XLSX export functionality and corresponding tests").

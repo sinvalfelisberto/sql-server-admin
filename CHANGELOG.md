@@ -5,6 +5,7 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The project d
 ## [Unreleased]
 
 ### Added
+- The MIT License (`LICENSE`).
 - **Import data…** in the database context menu: load a CSV or JSON file into an existing table (column mapping, empty values as NULL) or a new table (types inferred and editable), in atomic batches with progress and resume, and an **Import completed** window at the end. New `POST /api/import`, `public/assets/js/import.js`, `DataImporter` and tests (`tests/import.test.js`).
 - `POST /api/columns` also reports `identity` and `computed` for each column.
 - A show/hide button on the login screen's **Password** field (new `public/assets/js/login.js`; without JavaScript the button stays hidden and the field remains a password field).
