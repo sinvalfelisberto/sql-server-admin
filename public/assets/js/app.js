@@ -69,10 +69,10 @@
         });
         if (res.status === 401) {
             location.href = `${base}/login`;
-            throw new Error('Sessão expirada.');
+            throw new Error('Session expired.');
         }
         let body;
-        try { body = await res.json(); } catch { throw new Error('Resposta inválida do servidor (HTTP ' + res.status + ').'); }
+        try { body = await res.json(); } catch { throw new Error('Invalid server response (HTTP ' + res.status + ').'); }
         return body;
     }
 
@@ -98,7 +98,7 @@
                 const table = ids.pop();
                 return `${ids.pop() || 'dbo'}.${table}`;
             })()
-            : 'resultado';
+            : 'result';
         return `${base.replace(/[\\/:*?"<>|\s]+/g, '_')}_${ddMMyyyy()}.${ext}`;
     }
 
@@ -153,7 +153,7 @@
     let activeId = store.get('activeTab', null);
     let nextId = 1;
 
-    const TEMPLATE = '-- SQL Web Manager\n-- Pressione F5 para executar\n\nSELECT @@VERSION AS [Versão do SQL Server];\n';
+    const TEMPLATE = '-- SQL Web Manager\n-- Press F5 to run\n\nSELECT @@VERSION AS [SQL Server Version];\n';
 
     if (!Array.isArray(tabs) || !tabs.length) tabs = [{ id: 1, title: 'Query 1', sql: TEMPLATE }];
     nextId = Math.max(...tabs.map((t) => t.id)) + 1;
@@ -180,7 +180,7 @@
         },
         el('span', { text: '</> ' + t.title }),
         el('span', {
-            class: 'x', title: 'Fechar', text: '×',
+            class: 'x', title: 'Close', text: '×',
             onclick: (e) => { e.stopPropagation(); closeTab(t.id); },
         }))));
     }
@@ -222,7 +222,7 @@
         running = on;
         const btn = $('btn-run');
         btn.disabled = on;
-        btn.lastChild.textContent = on ? ' Executando…' : ' Executar';
+        btn.lastChild.textContent = on ? ' Running…' : ' Run';
     }
 
     /** @param {{unlimited?: boolean}} opts unlimited ignora o AUTO TOP (vale só o teto do servidor) */
@@ -230,7 +230,7 @@
         if (running) return;
         const selected = ta.value.substring(ta.selectionStart, ta.selectionEnd).trim();
         const sql = (sqlOverride ?? (selected || ta.value)).trim();
-        if (!sql) { toast('Digite uma consulta para executar.'); return; }
+        if (!sql) { toast('Type a query to run.'); return; }
 
         const tabId = activeId;
         const limit = !unlimited && $('chk-top').checked ? Math.max(1, parseInt($('inp-top').value, 10) || 1000) : 0;
@@ -272,7 +272,7 @@
         setRunning(true);
         try {
             const res = await api('execute', { ...m.req, page, page_size: m.size });
-            if (!res.ok || !res.page) { toast(res.error ? res.error.message : 'Não foi possível carregar a página.'); return; }
+            if (!res.ok || !res.page) { toast(res.error ? res.error.message : 'Could not load the page.'); return; }
             Object.assign(m, { res, sort: null, view: null, page: 1 });
         } catch (e) {
             toast(e.message);
@@ -317,7 +317,7 @@
         return rows;
     }
 
-    const fmt = (n) => Number(n).toLocaleString('pt-BR');
+    const fmt = (n) => Number(n).toLocaleString('en-US');
 
     function renderResults() {
         const m = currentModel();
@@ -331,7 +331,7 @@
         if (!set) {
             wrap.replaceChildren(el('div', {
                 class: 'empty',
-                text: m ? 'Nenhum conjunto de resultados retornado.' : 'Execute uma consulta para ver os resultados.',
+                text: m ? 'No result set returned.' : 'Run a query to see the results.',
             }));
             pager.replaceChildren();
             updateStatus(m);
@@ -347,6 +347,7 @@
         const slice = rows.slice((m.page - 1) * size, m.page * size);
 
         const numCols = set.columns.map((c) => /int|decimal|numeric|float|real|money/i.test(c.type));
+        const decimalCols = set.columns.map((c) => DECIMAL_TYPE.test(c.type)); // exibidos no padrão SQL, como na exportação
         const head = el('tr', {}, el('th', { class: 'rn', text: '#' }),
             set.columns.map((c, idx) => {
                 const sorted = m.sort && m.sort.col === idx;
@@ -358,15 +359,16 @@
                         m.view = null;
                         renderResults();
                     },
-                }, c.name || '(Sem nome)', el('span', { class: 'arrow', text: sorted ? (m.sort.dir === 1 ? '▲' : '▼') : '⇅' }));
+                }, c.name || '(No name)', el('span', { class: 'arrow', text: sorted ? (m.sort.dir === 1 ? '▲' : '▼') : '⇅' }));
             }));
 
         const frag = document.createDocumentFragment();
         for (const { r, i } of slice) {
             const tr = el('tr', {}, el('td', { class: 'rn', text: rowBase + i + 1 }));
             r.forEach((v, c) => {
-                if (v === null) tr.append(el('td', {}, el('span', { class: 'null', text: 'NULL' })));
-                else tr.append(el('td', { class: numCols[c] ? 'num' : '', title: String(v), text: String(v) }));
+                if (v === null) { tr.append(el('td', {}, el('span', { class: 'null', text: 'NULL' }))); return; }
+                const shown = String(decimalCols[c] ? formatDecimal(v) : v);
+                tr.append(el('td', { class: numCols[c] ? 'num' : '', title: shown, text: shown }));
             });
             frag.append(tr);
         }
@@ -376,26 +378,26 @@
         const from = rows.length ? (m.page - 1) * size + 1 : 0;
         const to = Math.min(m.page * size, rows.length);
         if (paged) {
-            $('res-filter').title = 'Filtra só as linhas desta página';
+            $('res-filter').title = 'Filters only the rows on this page';
             pager.replaceChildren(
                 el('span', { text: rows.length
-                    ? `Linhas ${fmt(rowBase + 1)} a ${fmt(rowBase + rows.length)}${paged.hasMore ? ' (há mais)' : ''}`
-                        + (m.filter ? ` · filtro: ${fmt(rows.length)} de ${fmt(set.rows.length)} nesta página` : '')
-                    : 'Nenhuma linha nesta página.',
-                title: 'A consulta é executada de novo a cada página; ordenação e filtro valem só para a página atual.' }),
+                    ? `Rows ${fmt(rowBase + 1)} to ${fmt(rowBase + rows.length)}${paged.hasMore ? ' (more available)' : ''}`
+                        + (m.filter ? ` · filter: ${fmt(rows.length)} of ${fmt(set.rows.length)} on this page` : '')
+                    : 'No rows on this page.',
+                title: 'The query runs again for each page; sorting and filtering apply only to the current page.' }),
                 el('span', { class: 'spacer' }),
-                el('button', { text: '‹ Anterior', disabled: paged.page <= 1 || running, onclick: () => loadPage(m, paged.page - 1) }),
-                el('span', { text: `Página ${fmt(paged.page)}` }),
-                el('button', { text: 'Próxima ›', disabled: !paged.hasMore || running, onclick: () => loadPage(m, paged.page + 1) }),
+                el('button', { text: '‹ Previous', disabled: paged.page <= 1 || running, onclick: () => loadPage(m, paged.page - 1) }),
+                el('span', { text: `Page ${fmt(paged.page)}` }),
+                el('button', { text: 'Next ›', disabled: !paged.hasMore || running, onclick: () => loadPage(m, paged.page + 1) }),
             );
         } else {
             $('res-filter').title = '';
             pager.replaceChildren(
-                el('span', { text: `Mostrando ${fmt(from)} a ${fmt(to)} de ${fmt(rows.length)} registros` + (m.filter ? ` (filtrado de ${fmt(set.rows.length)})` : '') }),
+                el('span', { text: `Showing ${fmt(from)} to ${fmt(to)} of ${fmt(rows.length)} records` + (m.filter ? ` (filtered from ${fmt(set.rows.length)})` : '') }),
                 el('span', { class: 'spacer' }),
-                el('button', { text: '‹ Anterior', disabled: m.page <= 1, onclick: () => { m.page--; renderResults(); } }),
+                el('button', { text: '‹ Previous', disabled: m.page <= 1, onclick: () => { m.page--; renderResults(); } }),
                 el('span', { text: `${m.page} / ${pages}` }),
-                el('button', { text: 'Próxima ›', disabled: m.page >= pages, onclick: () => { m.page++; renderResults(); } }),
+                el('button', { text: 'Next ›', disabled: m.page >= pages, onclick: () => { m.page++; renderResults(); } }),
             );
         }
         updateStatus(m);
@@ -406,7 +408,7 @@
         if (!m || m.res.sets.length < 2) { box.replaceChildren(); return; }
         box.replaceChildren(...m.res.sets.map((s, i) => el('button', {
             class: 'chip' + (i === m.setIdx ? ' active' : ''),
-            text: `Resultado ${i + 1} (${fmt(s.rows.length)})`,
+            text: `Result ${i + 1} (${fmt(s.rows.length)})`,
             onclick: () => { m.setIdx = i; m.sort = null; m.view = null; m.page = 1; renderResults(); },
         })));
     }
@@ -419,34 +421,49 @@
         res.messages.forEach((t) => lines.push(el('div', { class: 'msg', text: t })));
         res.sets.forEach((s, i) => {
             lines.push(el('div', { class: 'msg', text: res.page
-                ? `Página ${fmt(res.page.page)}: ${fmt(s.rows.length)} linha(s) (consulta paginada no servidor, ${fmt(res.page.size)} por página).`
-                : `(${fmt(s.rows.length)} linha(s) retornada(s)${res.sets.length > 1 ? ' no resultado ' + (i + 1) : ''})` }));
+                ? `Page ${fmt(res.page.page)}: ${fmt(s.rows.length)} row(s) (query paginated on the server, ${fmt(res.page.size)} per page).`
+                : `(${fmt(s.rows.length)} row(s) returned${res.sets.length > 1 ? ' in result ' + (i + 1) : ''})` }));
             if (s.truncated) {
-                lines.push(el('div', { class: 'msg err', text: `Resultado ${i + 1} limitado às primeiras ${fmt(s.rows.length)} linhas.` }));
+                lines.push(el('div', { class: 'msg err', text: `Result ${i + 1} limited to the first ${fmt(s.rows.length)} rows.` }));
             }
         });
         if (res.error) {
             const n = res.error.number ? `Msg ${res.error.number}: ` : '';
             lines.push(el('div', { class: 'msg err', text: n + res.error.message }));
         }
-        lines.push(el('div', { class: 'msg ' + (res.ok ? 'ok' : 'err'), text: res.ok ? 'Execução concluída.' : 'Execução com erro.' }));
-        lines.push(el('div', { class: 'msg time', text: `Tempo total: ${fmt(res.elapsed_ms)} ms` }));
+        lines.push(el('div', { class: 'msg ' + (res.ok ? 'ok' : 'err'), text: res.ok ? 'Execution completed.' : 'Execution failed.' }));
+        lines.push(el('div', { class: 'msg time', text: `Total time: ${fmt(res.elapsed_ms)} ms` }));
         box.replaceChildren(...lines);
     }
 
     function updateStatus(m) {
         $('sb-db').textContent = $('db-select').value;
-        $('sb-rows').textContent = m ? `▦ ${m.res.page ? `pág. ${fmt(m.res.page.page)} · ` : ''}${fmt(m.res.total_rows)} linha(s)` : '';
+        $('sb-rows').textContent = m ? `▦ ${m.res.page ? `page ${fmt(m.res.page.page)} · ` : ''}${fmt(m.res.total_rows)} row(s)` : '';
         $('sb-time').textContent = m ? `◔ ${fmt(m.res.elapsed_ms)} ms` : '';
     }
 
     // ---------- Exportação ----------
+    const DECIMAL_TYPE = /^(decimal|numeric|money|smallmoney)$/i;
+
+    /** Decimal no padrão SQL: ponto e no mínimo duas casas ("30000.0000" -> "30000.00", ".0000" -> "0.00"). Espelha format_decimal() do PHP. */
+    function formatDecimal(value) {
+        const m = /^(-?)(\d*)\.(\d+)$/.exec(String(value).trim());
+        if (!m) return value;
+        const frac = m[3].replace(/0+$/, '').padEnd(2, '0');
+        const int = m[2].replace(/^0+/, '') || '0';
+        return (int === '0' && /^0*$/.test(frac) ? '' : m[1]) + int + '.' + frac;
+    }
+
     function exportRows() {
         const m = currentModel();
         const set = currentSet(m);
-        if (!set) { toast('Não há resultados para exportar.'); return null; }
-        const rows = (m.view ?? computeView(m)).map(({ r }) => r);
-        return { columns: set.columns.map((c) => c.name), types: set.columns.map((c) => c.type), rows };
+        if (!set) { toast('There are no results to export.'); return null; }
+        const types = set.columns.map((c) => c.type);
+        const decimal = types.map((t) => DECIMAL_TYPE.test(t));
+        const rows = (m.view ?? computeView(m)).map(({ r }) => (decimal.some(Boolean)
+            ? r.map((v, i) => (decimal[i] && typeof v === 'string' ? formatDecimal(v) : v))
+            : r));
+        return { columns: set.columns.map((c) => c.name), types, rows };
     }
 
     /** Resultado paginado no servidor? Então a exportação reexecuta a consulta e traz tudo, não só a página. */
@@ -456,7 +473,7 @@
     /** Download em fluxo: um formulário para um iframe oculto; o navegador grava direto, sem montar o arquivo na memória. */
     function serverDownload(m, format) {
         if (!exportFrame) {
-            exportFrame = el('iframe', { name: 'export-frame', hidden: true, title: 'Exportação' });
+            exportFrame = el('iframe', { name: 'export-frame', hidden: true, title: 'Export' });
             exportFrame.addEventListener('load', () => {
                 // Só dispara quando o servidor respondeu com uma página (erro) em vez de um arquivo.
                 let text = '';
@@ -466,7 +483,7 @@
             document.body.append(exportFrame);
         }
         const fields = {
-            csrf, sql: m.req.sql, database: m.req.database, format,
+            csrf, sql: m.req.sql, database: m.req.database, format, separator: csvSeparator(),
             filename: exportName(m.req.sql, format).replace(/\.[^.]+$/, ''),
         };
         const form = el('form', { method: 'post', action: `${base}/api/export`, target: 'export-frame', hidden: true },
@@ -474,28 +491,32 @@
         document.body.append(form);
         form.submit();
         form.remove();
-        toast('Exportando o resultado completo: o download começa quando a consulta terminar.');
+        toast('Exporting the complete result: the download starts when the query finishes.');
     }
 
     async function serverXlsx(m) {
-        toast('Gerando o Excel com o resultado completo…');
+        toast('Building the Excel file with the complete result…');
         try {
             const data = await api('export', { sql: m.req.sql, database: m.req.database, format: 'raw', limit: 1048576 });
             if (data.ok === false) { toast(data.error.message); return; }
-            if (data.rows.length > 1048575) { toast('Excel suporta no máximo 1.048.575 linhas; use CSV.'); return; }
+            if (data.rows.length > 1048575) { toast('Excel supports at most 1,048,575 rows; use CSV.'); return; }
             download(exportName(m.req.sql, 'xlsx'), XlsxWriter.MIME, XlsxWriter.build(data.columns, data.types, data.rows));
         } catch (e) {
-            toast(`Falha na exportação: ${e.message}`);
+            toast(`Export failed: ${e.message}`);
         }
     }
 
+    /** Separador de CSV escolhido na tela: ";", ",", "|" ou "tab" (tabulação). */
+    const csvSeparator = () => $('csv-sep').value;
+
     function toCsv({ columns, rows }) {
+        const sep = csvSeparator() === 'tab' ? '\t' : csvSeparator();
         const cell = (v) => {
             if (v === null) return '';
             const s = String(v);
-            return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            return s.includes(sep) || /["\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
         };
-        return '﻿' + [columns.map(cell), ...rows.map((r) => r.map(cell))].map((l) => l.join(';')).join('\r\n');
+        return '\uFEFF' + [columns.map(cell), ...rows.map((r) => r.map(cell))].map((l) => l.join(sep)).join('\r\n');
     }
 
     function toJson({ columns, rows }) {
@@ -552,15 +573,15 @@
     function buildHistory() {
         const menu = $('menu-history');
         const list = store.get('history', []);
-        if (!list.length) { menu.replaceChildren(el('div', { class: 'none', text: 'Nenhuma consulta executada ainda.' })); return; }
+        if (!list.length) { menu.replaceChildren(el('div', { class: 'none', text: 'No queries run yet.' })); return; }
         menu.replaceChildren(
             ...list.map((h) => el('button', {
                 class: 'item',
                 title: h.sql,
                 onclick: () => { menu.hidden = true; loadSql(h.sql); },
-            }, el('span', { class: 'txt', text: oneLine(h.sql) }), el('span', { class: 'meta', text: new Date(h.ts).toLocaleString('pt-BR') }))),
+            }, el('span', { class: 'txt', text: oneLine(h.sql) }), el('span', { class: 'meta', text: new Date(h.ts).toLocaleString('en-US') }))),
             el('div', { class: 'sep' }),
-            el('button', { class: 'item', text: 'Limpar histórico', onclick: () => { store.set('history', []); menu.hidden = true; } }),
+            el('button', { class: 'item', text: 'Clear history', onclick: () => { store.set('history', []); menu.hidden = true; } }),
         );
     }
 
@@ -574,7 +595,7 @@
         },
         el('span', { class: 'txt', text: f.name }),
         el('span', {
-            class: 'del', title: 'Remover', text: '×',
+            class: 'del', title: 'Remove', text: '×',
             onclick: (e) => {
                 e.stopPropagation();
                 store.set('favorites', favs.filter((_, j) => j !== i));
@@ -584,19 +605,19 @@
         menu.replaceChildren(
             el('button', {
                 class: 'item',
-                text: '★ Adicionar consulta atual aos favoritos',
+                text: '★ Add current query to favorites',
                 onclick: () => {
                     const sql = ta.value.trim();
-                    if (!sql) { toast('O editor está vazio.'); return; }
-                    const name = prompt('Nome do favorito:', oneLine(sql).slice(0, 40));
+                    if (!sql) { toast('The editor is empty.'); return; }
+                    const name = prompt('Favorite name:', oneLine(sql).slice(0, 40));
                     if (!name) return;
                     store.set('favorites', [...favs, { name, sql }]);
                     menu.hidden = true;
-                    toast('Favorito salvo.');
+                    toast('Favorite saved.');
                 },
             }),
             el('div', { class: 'sep' }),
-            items.length ? items : el('div', { class: 'none', text: 'Nenhum favorito.' }),
+            items.length ? items : el('div', { class: 'none', text: 'No favorites.' }),
         );
     }
 
@@ -608,7 +629,7 @@
 
     // ---------- Object Explorer ----------
     const GROUPS = [
-        { label: 'Tabelas', types: ['U'], icon: 'table', cls: '' },
+        { label: 'Tables', types: ['U'], icon: 'table', cls: '' },
         { label: 'Views', types: ['V'], icon: 'view', cls: 'view' },
         { label: 'Procedures', types: ['P'], icon: 'proc', cls: 'proc' },
         { label: 'Functions', types: ['FN', 'IF', 'TF'], icon: 'func', cls: 'func' },
@@ -695,16 +716,16 @@
             if (open) out.push(...databaseChildren(d.name, loaded, items, f));
         }
 
-        if (!out.length) out.push(info(databases.length ? 'Nenhum objeto encontrado.' : 'Carregando bancos…', PAD.db));
+        if (!out.length) out.push(info(databases.length ? 'No objects found.' : 'Loading databases…', PAD.db));
         $('tree').replaceChildren(...out);
     }
 
     function databaseChildren(db, loaded, items, f) {
         if (loaded === undefined) {
             loadObjects(db); // idempotente: cobre bancos abertos após "Atualizar"
-            return [info('Carregando objetos…', PAD.group)];
+            return [info('Loading objects…', PAD.group)];
         }
-        if (!Array.isArray(loaded)) return [info('Erro: ' + loaded.error, PAD.group)];
+        if (!Array.isArray(loaded)) return [info('Error: ' + loaded.error, PAD.group)];
 
         const out = [];
         for (const g of GROUPS) {
@@ -716,7 +737,7 @@
             out.push(el('div', {
                 class: 'node' + (open ? ' open' : ''),
                 style: `padding-left:${PAD.group}px`,
-                oncontextmenu: (e) => showCtx(e, [{ label: 'Atualizar', run: () => refreshDatabase(db) }]),
+                oncontextmenu: (e) => showCtx(e, [{ label: 'Refresh', run: () => refreshDatabase(db) }]),
                 onclick: () => { openGroups.has(key) ? openGroups.delete(key) : openGroups.add(key); renderTree(); },
             }, chevron(), icon('folder', 'folder'), el('span', { class: 'lbl', text: g.label }),
             el('span', { class: 'count', text: `(${fmt(groupItems.length)})` })));
@@ -724,7 +745,7 @@
             if (!open) continue;
             groupItems.slice(0, TREE_LIMIT).forEach((o) => out.push(...objectNode(db, o, g)));
             if (groupItems.length > TREE_LIMIT) {
-                out.push(info(`… mais ${fmt(groupItems.length - TREE_LIMIT)} (refine o filtro)`, PAD.object));
+                out.push(info(`… ${fmt(groupItems.length - TREE_LIMIT)} more (refine the filter)`, PAD.object));
             }
         }
         return out;
@@ -739,7 +760,7 @@
         const node = el('div', {
             class: 'node' + (open ? ' open' : ''),
             style: `padding-left:${PAD.object}px`,
-            title: isTable ? 'Duplo clique: SELECT TOP · Botão direito: mais opções' : 'Duplo clique: inserir no editor · Botão direito: mais opções',
+            title: isTable ? 'Double-click: SELECT TOP · Right-click: more options' : 'Double-click: insert into editor · Right-click: more options',
             oncontextmenu: (e) => showCtx(e, objectMenu(db, o)),
             onclick: () => { open ? expanded.delete(key) : expanded.add(key); renderTree(); },
             ondblclick: () => {
@@ -759,18 +780,18 @@
 
         const cached = columnCache.get(key);
         if (!cached) {
-            result.push(info('Carregando…', PAD.child));
+            result.push(info('Loading…', PAD.child));
             fetchColumns(key, db, o);
             return result;
         }
         cached.forEach((c) => result.push(el('div', {
             class: 'node col',
             style: `padding-left:${PAD.child}px`,
-            title: 'Clique para inserir no editor',
+            title: 'Click to insert into the editor',
             onclick: () => insertAtCursor(colRef(c.name)),
         }, icon(c.pk ? 'key' : 'col', c.pk ? 'pk' : ''), el('span', { class: 'lbl', text: c.name }),
         el('span', { class: 'type', text: `${c.type}${c.nullable ? '' : ' not null'}` }))));
-        if (!cached.length) result.push(info('Sem colunas/parâmetros.', PAD.child));
+        if (!cached.length) result.push(info('No columns/parameters.', PAD.child));
         return result;
     }
 
@@ -809,7 +830,7 @@
     }
 
     /** Diálogo modal reutilizável. Resolve com o value da ação clicada, ou null se fechado. */
-    function showDialog({ title, body, actions = [{ label: 'Fechar', value: null }], wide = false }) {
+    function showDialog({ title, body, actions = [{ label: 'Close', value: null }], wide = false }) {
         const dlg = $('dialog');
         $('dialog-title').textContent = title;
         $('dialog-body').replaceChildren(...[body].flat());
@@ -843,47 +864,47 @@
                 const res = await api('table-info', { database: db, schema: o.schema, name: o.name });
                 if (res.ok && res.rows !== null && res.rows > LARGE_TABLE_ROWS) {
                     proceed = await showDialog({
-                        title: 'Tabela volumosa',
-                        body: el('p', { text: `${o.schema}.${o.name} tem cerca de ${fmt(res.rows)} linhas. Trazer tudo pode sobrecarregar o navegador e o servidor (o servidor ainda limita o retorno ao teto configurado).` }),
-                        actions: [{ label: 'Cancelar', value: false }, { label: 'Executar mesmo assim', primary: true, value: true }],
+                        title: 'Large table',
+                        body: el('p', { text: `${o.schema}.${o.name} has about ${fmt(res.rows)} rows. Fetching everything can overload the browser and the server (the server still caps the result at the configured limit).` }),
+                        actions: [{ label: 'Cancel', value: false }, { label: 'Run anyway', primary: true, value: true }],
                     }) === true;
                 }
             } catch { /* sem estimativa: segue sem aviso */ }
         }
         openQuery(db, `SELECT * FROM ${qualified(o.schema, o.name)}`, { execute: proceed, unlimited: true });
-        if (!proceed) toast('Consulta gerada, mas não executada.');
+        if (!proceed) toast('Query generated but not run.');
     }
 
     async function showDdl(db, o) {
-        toast('Gerando DDL…');
+        toast('Generating DDL…');
         try {
             const res = await api('ddl', { database: db, schema: o.schema, name: o.name, type: o.type });
             if (!res.ok) throw new Error(res.error.message);
             openQuery(db, res.ddl, { title: `DDL ${o.name}` });
         } catch (e) {
-            toast('Erro: ' + e.message);
+            toast('Error: ' + e.message);
         }
     }
 
     async function showDatabaseDdl(db) {
-        toast('Gerando DDL…');
+        toast('Generating DDL…');
         try {
             const res = await api('db-ddl', { database: db });
             if (!res.ok) throw new Error(res.error.message);
             openQuery(db, res.ddl, { title: `DDL ${db}` });
         } catch (e) {
-            toast('Erro: ' + e.message);
+            toast('Error: ' + e.message);
         }
     }
 
     const fmtSize = (kb) => {
         if (kb < 1024) return `${fmt(kb)} KB`;
-        if (kb < 1048576) return `${(kb / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`;
-        return `${(kb / 1048576).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} GB`;
+        if (kb < 1048576) return `${(kb / 1024).toLocaleString('en-US', { maximumFractionDigits: 1 })} MB`;
+        return `${(kb / 1048576).toLocaleString('en-US', { maximumFractionDigits: 2 })} GB`;
     };
 
     function dataTable(headers, rows) {
-        if (!rows.length) return el('p', { class: 'muted', text: 'Nenhum registro.' });
+        if (!rows.length) return el('p', { class: 'muted', text: 'No records.' });
         return el('table', { class: 'info-table' },
             el('thead', {}, el('tr', {}, headers.map((h) => el('th', { text: h })))),
             el('tbody', {}, rows.map((r) => el('tr', {}, r.map((c) => el('td', { text: c }))))));
@@ -891,27 +912,27 @@
 
     function infoBody(d) {
         const summary = [
-            ['Linhas (aproximado)', d.rows === null ? '—' : fmt(d.rows)],
-            ['Espaço reservado', fmtSize(d.reservedKb)],
-            ['Dados', fmtSize(d.dataKb)],
-            ['Índices', fmtSize(d.indexKb)],
-            ['Não utilizado', fmtSize(d.unusedKb)],
+            ['Rows (approximate)', d.rows === null ? '—' : fmt(d.rows)],
+            ['Reserved space', fmtSize(d.reservedKb)],
+            ['Data', fmtSize(d.dataKb)],
+            ['Indexes', fmtSize(d.indexKb)],
+            ['Unused', fmtSize(d.unusedKb)],
         ];
-        const restriction = (i) => [i.primaryKey && 'PK', i.uniqueConstraint && 'UNIQUE', i.unique && !i.primaryKey && !i.uniqueConstraint && 'ÚNICO']
+        const restriction = (i) => [i.primaryKey && 'PK', i.uniqueConstraint && 'UNIQUE', i.unique && !i.primaryKey && !i.uniqueConstraint && 'UNIQUE INDEX']
             .filter(Boolean).join(', ') || '—';
 
         return [
             el('dl', { class: 'info-grid' }, summary.flatMap(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })])),
-            el('h4', { text: `Índices (${d.indexes.length})` }),
-            dataTable(['Nome', 'Tipo', 'Chaves', 'Incluídas', 'Restrição'], d.indexes.map((i) => [
+            el('h4', { text: `Indexes (${d.indexes.length})` }),
+            dataTable(['Name', 'Type', 'Keys', 'Included', 'Constraint'], d.indexes.map((i) => [
                 i.name, i.type, i.keys.map((k) => k.name + (k.desc ? ' DESC' : '')).join(', '), i.included.join(', ') || '—', restriction(i),
             ])),
-            el('h4', { text: `Chaves estrangeiras (${d.foreignKeys.length})` }),
-            dataTable(['Nome', 'Relação', 'Colunas', 'Tabela relacionada', 'ON DELETE / UPDATE'], d.foreignKeys.map((fk) => {
+            el('h4', { text: `Foreign keys (${d.foreignKeys.length})` }),
+            dataTable(['Name', 'Relationship', 'Columns', 'Related table', 'ON DELETE / UPDATE'], d.foreignKeys.map((fk) => {
                 const out = fk.direction === 'out';
                 return [
                     fk.name,
-                    out ? 'referencia' : 'referenciada por',
+                    out ? 'references' : 'referenced by',
                     `${(out ? fk.columns : fk.refColumns).join(', ')} → ${(out ? fk.refColumns : fk.columns).join(', ')}`,
                     out ? fk.refTable : fk.parentTable,
                     `${fk.onDelete} / ${fk.onUpdate}`,
@@ -924,14 +945,14 @@
         try {
             const res = await api('table-info', { database: db, schema: o.schema, name: o.name });
             if (!res.ok) throw new Error(res.error.message);
-            showDialog({ title: `Informações: ${o.schema}.${o.name}`, body: infoBody(res), wide: true });
+            showDialog({ title: `Information: ${o.schema}.${o.name}`, body: infoBody(res), wide: true });
         } catch (e) {
-            toast('Erro: ' + e.message);
+            toast('Error: ' + e.message);
         }
     }
 
     async function copyName(text) {
-        toast((await copyText(text)) ? `Copiado: ${text}` : 'Não foi possível copiar para a área de transferência.');
+        toast((await copyText(text)) ? `Copied: ${text}` : 'Could not copy to the clipboard.');
     }
 
     /** Recarrega só as colunas/parâmetros do objeto. */
@@ -940,7 +961,7 @@
         columnCache.delete(key);
         expanded.add(key);
         renderTree();
-        toast(`${o.schema}.${o.name} atualizado.`);
+        toast(`${o.schema}.${o.name} refreshed.`);
     }
 
     /** Recarrega todos os objetos filhos do banco. */
@@ -949,38 +970,38 @@
         [...columnCache.keys()].filter((k) => k.startsWith(db + '|')).forEach((k) => columnCache.delete(k));
         openDbs.add(db);
         renderTree(); // mostra "Carregando…" e dispara o recarregamento
-        toast(`${db} atualizado.`);
+        toast(`${db} refreshed.`);
     }
 
     async function refreshAll() {
         dbObjects.clear();
         columnCache.clear();
         await loadDatabases();
-        toast('Object Explorer atualizado.');
+        toast('Object Explorer refreshed.');
     }
 
     function objectMenu(db, o) {
         return [
             ...(isTableLike(o) ? [
                 { label: 'SELECT TOP 100', run: () => selectTop(db, o) },
-                { label: 'SELECT * (sem TOP)', run: () => selectAll(db, o) },
+                { label: 'SELECT * (no TOP)', run: () => selectAll(db, o) },
                 '-',
             ] : []),
-            { label: 'Ver DDL', run: () => showDdl(db, o) },
-            ...(isTableLike(o) ? [{ label: 'Informações da tabela', run: () => showInfo(db, o) }] : []),
+            { label: 'View DDL', run: () => showDdl(db, o) },
+            ...(isTableLike(o) ? [{ label: 'Table information', run: () => showInfo(db, o) }] : []),
             '-',
-            { label: 'Copiar nome qualificado', run: () => copyName(qualified(o.schema, o.name)) },
-            { label: 'Copiar nome simples', run: () => copyName(o.name) },
+            { label: 'Copy qualified name', run: () => copyName(qualified(o.schema, o.name)) },
+            { label: 'Copy plain name', run: () => copyName(o.name) },
             '-',
-            { label: 'Atualizar', run: () => refreshObject(db, o) },
+            { label: 'Refresh', run: () => refreshObject(db, o) },
         ];
     }
 
     const databaseMenu = (db) => [
-        { label: 'Nova consulta', run: () => newQuery(db) },
-        { label: 'Ver DDL (script do banco)', run: () => showDatabaseDdl(db) },
+        { label: 'New query', run: () => newQuery(db) },
+        { label: 'View DDL (database script)', run: () => showDatabaseDdl(db) },
         '-',
-        { label: 'Atualizar', run: () => refreshDatabase(db) },
+        { label: 'Refresh', run: () => refreshDatabase(db) },
     ];
 
     function bindExplorer() {
@@ -1008,7 +1029,7 @@
         const sel = $('db-select');
         const res = await api('databases');
         if (!res.ok) {
-            toast('Erro: ' + res.error.message);
+            toast('Error: ' + res.error.message);
             return;
         }
         databases = res.databases.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
@@ -1122,10 +1143,12 @@
         });
 
         $('btn-save').addEventListener('click', () => {
-            if (!ta.value.trim()) { toast('O editor está vazio.'); return; }
+            if (!ta.value.trim()) { toast('The editor is empty.'); return; }
             download(`${activeTab().title.replace(/\s+/g, '_')}.sql`, 'text/plain;charset=utf-8', ta.value);
         });
 
+        $('csv-sep').value = store.get('csvSep', $('csv-sep').dataset.default);
+        $('csv-sep').addEventListener('change', (e) => store.set('csvSep', e.target.value));
         $('chk-top').checked = store.get('autoTop', true);
         $('inp-top').value = store.get('autoTopN', 1000);
         $('chk-top').addEventListener('change', (e) => store.set('autoTop', e.target.checked));
@@ -1169,14 +1192,14 @@
             if (!d) return;
             const line = (r) => r.map((v) => (v === null ? '' : String(v).replace(/[\t\r\n]+/g, ' '))).join('\t');
             const ok = await copyText([line(d.columns), ...d.rows.map(line)].join('\n'));
-            toast(ok ? `${fmt(d.rows.length)} linha(s) copiada(s)${currentModel().res.page ? ' (só esta página)' : ''}.` : 'Não foi possível copiar para a área de transferência.');
+            toast(ok ? `${fmt(d.rows.length)} row(s) copied${currentModel().res.page ? ' (this page only)' : ''}.` : 'Could not copy to the clipboard.');
         });
         $('btn-csv').addEventListener('click', () => { const pm = pagedModel(); if (pm) { serverDownload(pm, 'csv'); return; } const d = exportRows(); if (d) download(exportName(currentModel().sql, 'csv'), 'text/csv;charset=utf-8', toCsv(d)); });
         $('btn-xls').addEventListener('click', () => {
             const pm = pagedModel();
             if (pm) { serverXlsx(pm); return; }
             const d = exportRows();
-            if (d && d.rows.length > 1048575) { toast('Excel suporta no máximo 1.048.575 linhas; use CSV.'); return; }
+            if (d && d.rows.length > 1048575) { toast('Excel supports at most 1,048,575 rows; use CSV.'); return; }
             if (d) download(exportName(currentModel().sql, 'xlsx'), XlsxWriter.MIME, XlsxWriter.build(d.columns, d.types, d.rows));
         });
         $('btn-json').addEventListener('click', () => { const pm = pagedModel(); if (pm) { serverDownload(pm, 'json'); return; } const d = exportRows(); if (d) download(exportName(currentModel().sql, 'json'), 'application/json', toJson(d)); });

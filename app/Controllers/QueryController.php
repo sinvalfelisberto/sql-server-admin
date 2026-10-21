@@ -12,7 +12,10 @@ use PDOException;
 use RuntimeException;
 
 use function App\Models\csv_line;
+use function App\Models\csv_separator;
 use function App\Models\effective_limit;
+use function App\Models\format_decimal;
+use function App\Models\is_decimal_type;
 use function App\Models\pdo_error;
 use function App\Models\safe_filename;
 use function App\Models\unique_keys;
@@ -84,13 +87,26 @@ final class QueryController
             return Response::json(['ok' => false, 'error' => ['message' => $e->getMessage()]]);
         }
 
+        $separator = csv_separator(
+            isset($in['separator']) ? (string) $in['separator'] : null,
+            csv_separator((string) $this->config->get('csv_separator', ';')),
+        );
         $names = array_column($columns, 'name');
         $types = array_column($columns, 'type');
         $keys = unique_keys($names);
         $json = JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR;
-        $rows = $this->executor->streamRows($stmt, $max);
+        $decimal = array_map(is_decimal_type(...), $types);
+        $rows = (static function (iterable $source) use ($decimal): \Generator {
+            foreach ($source as $row) {
+                yield array_map(
+                    static fn (mixed $v, bool $isDecimal): mixed => $isDecimal && is_string($v) ? format_decimal($v) : $v,
+                    $row,
+                    $decimal,
+                );
+            }
+        })($this->executor->streamRows($stmt, $max));
 
-        $body = static function () use ($pdo, $format, $names, $types, $keys, $rows, $json): void {
+        $body = static function () use ($pdo, $format, $separator, $names, $types, $keys, $rows, $json): void {
             set_time_limit(0);
             while (ob_get_level() > 0) {
                 ob_end_clean();
@@ -106,7 +122,7 @@ final class QueryController
 
             $n = 0;
             if ($format === 'csv') {
-                $emit("\xEF\xBB\xBF" . csv_line($names));
+                $emit("\xEF\xBB\xBF" . csv_line($names, $separator));
             } elseif ($format === 'json') {
                 $emit('[');
             } else {
@@ -115,7 +131,7 @@ final class QueryController
 
             foreach ($rows as $row) {
                 $chunk = match ($format) {
-                    'csv'   => "\r\n" . csv_line($row),
+                    'csv'   => "\r\n" . csv_line($row, $separator),
                     'json'  => ($n ? ',' : '') . "\n  " . json_encode(array_combine($keys, $row), $json),
                     default => ($n ? ',' : '') . json_encode($row, $json),
                 };
@@ -138,7 +154,7 @@ final class QueryController
         $mime = $format === 'csv' ? 'text/csv; charset=utf-8' : 'application/json; charset=utf-8';
         $headers = ['Content-Type' => $mime, 'Cache-Control' => 'no-store', 'X-Accel-Buffering' => 'no'];
         if ($format !== 'raw') {
-            $file = safe_filename((string) ($in['filename'] ?? ''), 'resultado') . ($format === 'csv' ? '.csv' : '.json');
+            $file = safe_filename((string) ($in['filename'] ?? ''), 'result') . ($format === 'csv' ? '.csv' : '.json');
             $file = preg_replace('/\.(csv|json)\.(csv|json)$/', '.$2', $file);
             $headers['Content-Disposition'] = 'attachment; filename="' . $file . '"';
         }

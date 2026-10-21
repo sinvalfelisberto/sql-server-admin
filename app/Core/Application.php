@@ -50,8 +50,8 @@ final class Application
         } catch (Throwable $e) {
             error_log($e::class . ': ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
             $response = str_starts_with($request->path, '/api/')
-                ? Response::json(['ok' => false, 'error' => ['message' => 'Erro interno do servidor.']], 500)
-                : Response::html('Erro interno do servidor.', 500);
+                ? Response::json(['ok' => false, 'error' => ['message' => 'Internal server error.']], 500)
+                : Response::html('Internal server error.', 500);
         }
 
         return array_reduce(
@@ -82,7 +82,7 @@ final class Application
         $c->set(AuthController::class, static fn (Container $c) => new AuthController(
             $c->get(View::class), $c->get(Session::class), $c->get(Config::class), $c->get(ConnectionFactory::class),
         ));
-        $c->set(EditorController::class, static fn (Container $c) => new EditorController($c->get(View::class), $c->get(Session::class)));
+        $c->set(EditorController::class, static fn (Container $c) => new EditorController($c->get(View::class), $c->get(Session::class), $c->get(Config::class)));
         $c->set(ObjectScripter::class, static fn (Container $c) => new ObjectScripter($c->get(ConnectionFactory::class), $c->get(CatalogRepository::class)));
         $c->set(ExplorerController::class, static fn (Container $c) => new ExplorerController(
             $c->get(Session::class), $c->get(CatalogRepository::class), $c->get(ObjectScripter::class),

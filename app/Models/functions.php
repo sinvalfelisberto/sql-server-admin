@@ -25,7 +25,7 @@ function normalize_server(string $server): Result
 
     return $valid
         ? Result::ok((string) preg_replace('/:(\d{1,5})$/', ',$1', $server))
-        : Result::err('Nome de servidor inválido.');
+        : Result::err('Invalid server name.');
 }
 
 /** Falha se houver lista de permitidos e o servidor não estiver nela. */
@@ -42,7 +42,7 @@ function ensure_server_allowed(array $allowed, string $server): Result
 
     return in_array(strtolower($server), $normalized, true)
         ? Result::ok($server)
-        : Result::err('Servidor não permitido.');
+        : Result::err('Server not allowed.');
 }
 
 /** DSN do pdo_sqlsrv. O banco NÃO entra no DSN (é escolhido via USE) para evitar injeção de opções. */
@@ -246,21 +246,34 @@ function paginate_sql(string $sql, int $offset, int $rows): ?string
         . " OFFSET $offset ROWS FETCH NEXT $rows ROWS ONLY";
 }
 
-/** Célula de CSV (separador ";"): aspas só quando necessário. */
-function csv_cell(mixed $value): string
+/**
+ * Separador de CSV permitido: ";", ",", "|" ou tabulação (também aceita a palavra "tab").
+ * Qualquer outro valor (ou null) cai em $default.
+ */
+function csv_separator(?string $value, string $default = ';'): string
+{
+    $value = strtolower($value ?? '');
+    $value = $value === 'tab' ? "\t" : $value;
+
+    return in_array($value, [';', ',', '|', "\t"], true) ? $value : $default;
+}
+
+/** Célula de CSV: aspas só quando o texto contém aspas, quebra de linha ou o separador. */
+function csv_cell(mixed $value, string $separator = ';'): string
 {
     if ($value === null) {
         return '';
     }
     $text = is_bool($value) ? (string) (int) $value : (string) $value;
+    $special = '/["\r\n' . preg_quote($separator, '/') . ']/';
 
-    return preg_match('/[";\r\n]/', $text) === 1 ? '"' . str_replace('"', '""', $text) . '"' : $text;
+    return preg_match($special, $text) === 1 ? '"' . str_replace('"', '""', $text) . '"' : $text;
 }
 
 /** @param list<mixed> $cells */
-function csv_line(array $cells): string
+function csv_line(array $cells, string $separator = ';'): string
 {
-    return implode(';', array_map(csv_cell(...), $cells));
+    return implode($separator, array_map(static fn (mixed $cell): string => csv_cell($cell, $separator), $cells));
 }
 
 /** Nomes de coluna únicos para JSON: repetidos ganham sufixo _2, _3... */
@@ -281,4 +294,29 @@ function safe_filename(string $name, string $fallback = 'resultado'): string
     $clean = trim((string) preg_replace('/[^A-Za-z0-9._\-]+/', '_', $name), '._');
 
     return $clean === '' ? $fallback : $clean;
+}
+
+/** O tipo SQL (nome-base do driver) guarda decimais exatos? Fica de fora float/real e inteiros. */
+function is_decimal_type(string $type): bool
+{
+    return in_array(strtolower($type), ['decimal', 'numeric', 'money', 'smallmoney'], true);
+}
+
+/**
+ * Decimal no padrão SQL para exportação: ponto como separador e no mínimo duas casas.
+ * "30000.0000" -> "30000.00"; ".0000" -> "0.00"; "-.5000" -> "-0.50". Zeros à direita além da
+ * segunda casa saem; casas significativas nunca são cortadas ("12.3456" continua "12.3456").
+ * Valores sem parte fracionária (ex.: numeric(10,0)) e textos que não são decimais passam intactos.
+ */
+function format_decimal(string $value): string
+{
+    if (preg_match('/^(-?)(\d*)\.(\d+)$/', trim($value), $m) !== 1) {
+        return $value;
+    }
+    [, $sign, $int, $frac] = $m;
+    $frac = str_pad(rtrim($frac, '0'), 2, '0');
+    $int = ltrim($int, '0') === '' ? '0' : ltrim($int, '0');
+    $negativeZero = $int === '0' && trim($frac, '0') === '';
+
+    return ($negativeZero ? '' : $sign) . "$int.$frac";
 }

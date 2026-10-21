@@ -7,7 +7,7 @@
 $scripts = $data['scripts'] ?? [];
 ?>
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="en-US" data-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

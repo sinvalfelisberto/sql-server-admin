@@ -48,7 +48,21 @@ test('CRC de todos os arquivos confere', () => {
 });
 test('números viram células numéricas; texto vira inlineStr', () => {
     assert.match(sheet, /<c r="A2"><v>1<\/v><\/c>/);
-    assert.match(sheet, /<c r="C2"><v>10\.5<\/v><\/c>/);
+    assert.match(sheet, /<c r="C2" s="2"><v>10\.5<\/v><\/c>/); // decimal com 2 casas: formato 0.00
+});
+
+test('decimal com 2 casas usa estilo 0.00; mais casas, inteiros e outros tipos não', () => {
+    const d = readZip(buildBytes(
+        ['a', 'b', 'c', 'd'],
+        ['money', 'decimal', 'int', 'float'],
+        [['30000.00', '12.3456', 7, '1.50']],
+    ));
+    const xml = d['xl/worksheets/sheet1.xml'].texto;
+    assert.match(xml, /<c r="A2" s="2"><v>30000<\/v><\/c>/);
+    assert.match(xml, /<c r="B2"><v>12\.3456<\/v><\/c>/);
+    assert.match(xml, /<c r="C2"><v>7<\/v><\/c>/);
+    assert.match(xml, /<c r="D2"><v>1\.5<\/v><\/c>/);
+    assert.match(d['xl/styles.xml'].texto, /<cellXfs count="3">[\s\S]*numFmtId="2"/);
 });
 test('decimal com risco de perda de precisão e zeros à esquerda ficam texto', () => {
     assert.match(sheet, /<c r="C3" t="inlineStr"><is><t xml:space="preserve">99999999999999999\.99<\/t>/);

@@ -30,12 +30,12 @@ final class Router
         $pathMatches = array_filter($this->routes, static fn (array $r): bool => $r[1] === $request->path);
 
         if ($pathMatches === []) {
-            return Response::html('Página não encontrada.', 404);
+            return Response::html('Page not found.', 404);
         }
 
         $route = array_values(array_filter($pathMatches, static fn (array $r): bool => $r[0] === $request->method))[0] ?? null;
         if ($route === null) {
-            return Response::html('Método não permitido.', 405)
+            return Response::html('Method not allowed.', 405)
                 ->withHeader('Allow', implode(', ', array_unique(array_column($pathMatches, 0))));
         }
 

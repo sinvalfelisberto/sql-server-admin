@@ -30,7 +30,7 @@ final readonly class QueryResult
     {
         $messages = $this->messages;
         if ($this->sets === [] && $messages === [] && $this->error === null) {
-            $messages = ['Comando(s) concluído(s) com sucesso.'];
+            $messages = ['Command(s) completed successfully.'];
         }
 
         return [

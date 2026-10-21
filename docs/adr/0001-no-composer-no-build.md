@@ -1,11 +1,11 @@
-# 0001 – Sem Composer e sem build de front-end
+# 0001 – No Composer and no front-end build
 
-- **Status:** aceita
-- **Contexto:** a ferramenta é um cliente de SQL Server pequeno, pensado para rodar em servidores com acesso limitado (há implantação em IIS sem controle do document root). O README define o projeto como "PHP, HTML, CSS e JavaScript puros, sem dependências de front-end nem de Composer".
-- **Decisão:** autoload PSR-4 próprio (`app/bootstrap.php`), funções livres carregadas com `require`, JavaScript em arquivos estáticos sem bundler, e utilitários próprios (`pipe`, `Result`, gerador de `.xlsx`) no lugar de bibliotecas.
-- **Alternativas consideradas:** Composer com framework (Laravel/Slim) e bundler (Vite). *Inferidas:* descartadas pelo custo de instalação e manutenção em ambientes restritos.
-- **Consequências:**
-  - (+) Implantação é copiar arquivos; nada para instalar ou atualizar.
-  - (+) Superfície de dependências, e de vulnerabilidades de terceiros, mínima.
-  - (−) Funcionalidades comuns (roteador, container, ZIP/XLSX) são mantidas aqui e precisam de testes próprios.
-  - (−) Sem checagem automática de tipos ou lint de front-end.
+- **Status:** accepted
+- **Context:** the tool is a small SQL Server client meant to run on servers with limited access (it is deployed on IIS without control of the document root). The README defines the project as "plain PHP, HTML, CSS and JavaScript, with no front-end dependencies and no Composer".
+- **Decision:** a custom PSR-4 autoloader (`app/bootstrap.php`), free functions loaded with `require`, JavaScript as static files with no bundler, and in-house utilities (`pipe`, `Result`, the `.xlsx` generator) instead of libraries.
+- **Alternatives considered:** Composer with a framework (Laravel/Slim) and a bundler (Vite). *Inferred:* rejected because of the installation and maintenance cost in restricted environments.
+- **Consequences:**
+  - (+) Deployment is copying files; nothing to install or update.
+  - (+) A minimal surface of dependencies, and of third-party vulnerabilities.
+  - (−) Common features (router, container, ZIP/XLSX) are maintained here and need their own tests.
+  - (−) No automatic type checking or front-end linting.

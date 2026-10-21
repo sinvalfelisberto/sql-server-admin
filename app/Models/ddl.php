@@ -133,7 +133,7 @@ function index_script(string $qualifiedTable, array $index): string
         return "CREATE $type INDEX $name ON $qualifiedTable$columns;";
     }
     if (!in_array($type, ['CLUSTERED', 'NONCLUSTERED'], true)) {
-        return "-- Índice $name ($type) omitido: tipo não suportado pelo gerador.";
+        return "-- Index $name ($type) omitted: type not supported by the generator.";
     }
 
     return 'CREATE ' . ($index['unique'] ? 'UNIQUE ' : '') . "$type INDEX $name ON $qualifiedTable (" . index_key_list($index['keys']) . ')'
@@ -224,7 +224,7 @@ function build_create_database(array $db): string
         ...array_map(static fn (string $o): string => "ALTER DATABASE $name SET $o;", $options),
         'GO',
         '',
-        '-- Arquivos de dados e de log (MDF/LDF) não incluídos neste script.',
+        '-- Data and log files (MDF/LDF) are not included in this script.',
         '',
     ]);
 }

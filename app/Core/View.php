@@ -26,7 +26,7 @@ final class View
     {
         $file = "{$this->dir}/{$name}.php";
         if (!is_file($file)) {
-            throw new RuntimeException("Template não encontrado: $name");
+            throw new RuntimeException("Template not found: $name");
         }
 
         return (static function (string $__file, array $data): string {

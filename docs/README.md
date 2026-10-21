@@ -1,25 +1,25 @@
-# Documentação do SQL Web Manager
+# SQL Web Manager documentation
 
-Cliente web para SQL Server, no estilo do SSMS, em PHP, HTML, CSS e JavaScript puros (sem Composer e sem dependências de front-end).
+A web client for SQL Server, SSMS-style, built with plain PHP, HTML, CSS and JavaScript (no Composer and no front-end dependencies).
 
-## Por onde começar
+## Where to start
 
-| Quero… | Leia |
+| I want to… | Read |
 |---|---|
-| Instalar e abrir a aplicação | [README da raiz](../README.md) (quick start) |
-| Usar a ferramenta (login, explorer, editor, exportação) | [Manual do usuário](usuario.md) |
-| Configurar, publicar (Docker, Apache, IIS) e resolver problemas | [Configuração e operação](configuracao.md) |
-| Entender os riscos e as proteções | [Segurança](seguranca.md) |
-| Chamar a API HTTP | [Referência da API](api.md) |
-| Entender como o código está organizado | [Arquitetura](arquitetura.md) |
-| Alterar ou estender o código | [Guia de desenvolvimento](desenvolvimento.md) |
-| Saber por que algo foi feito de certo jeito | [Decisões de arquitetura (ADRs)](adr/) |
-| Ver o histórico de mudanças | [CHANGELOG](../CHANGELOG.md) |
+| Install and open the application | [Root README](../README.md) (quick start) |
+| Use the tool (login, explorer, editor, export) | [User guide](user-guide.md) |
+| Configure, deploy (Docker, Apache, IIS) and troubleshoot | [Configuration and operations](configuration.md) |
+| Understand the risks and the protections | [Security](security.md) |
+| Call the HTTP API | [API reference](api.md) |
+| Understand how the code is organized | [Architecture](architecture.md) |
+| Change or extend the code | [Development guide](development.md) |
+| Learn why something was done a certain way | [Architecture decisions (ADRs)](adr/README.md) |
+| See the change history | [CHANGELOG](../CHANGELOG.md) |
 
-O [PRD](../PRD.md) descreve a visão do produto e o roadmap. Ele inclui itens que **ainda não estão implementados** (veja [Fora do escopo atual](usuario.md#o-que-ainda-não-existe)).
+The [PRD](../PRD.md) (in Portuguese) describes the product vision and roadmap. It includes items that are **not implemented yet** (see [Not available yet](user-guide.md#not-available-yet)).
 
-## Convenções desta documentação
+## Conventions in this documentation
 
-- O código é a fonte da verdade. Quando houver divergência com o README ou o PRD, vale o código.
-- Caminhos são relativos à raiz do projeto.
-- Mensagens e rótulos da interface aparecem em **negrito**, exatamente como na tela.
+- The code is the source of truth. When it disagrees with the README or the PRD, the code wins.
+- Paths are relative to the project root.
+- Messages and UI labels appear in **bold**, exactly as on screen (the interface is in English, US).

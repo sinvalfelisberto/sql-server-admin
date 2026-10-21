@@ -1,73 +1,73 @@
-# Guia de desenvolvimento
+# Development guide
 
-## Preparar o ambiente
+## Set up the environment
 
-Não há `composer install` nem `npm install`. Você precisa de PHP 8.2+ (com `pdo_sqlsrv` para rodar a aplicação) e, para o teste do `.xlsx`, Node.js.
-
-```bash
-php -S localhost:8080 -t public      # aplicação (precisa de um SQL Server para logar)
-docker compose --profile demo up -d  # alternativa: app + SQL Server de demonstração
-```
-
-## Testes
+There is no `composer install` and no `npm install`. You need PHP 8.2+ (with `pdo_sqlsrv` to run the application) and, for the `.xlsx` test, Node.js.
 
 ```bash
-php tests/run.php          # funções puras e objetos de valor: 79 verificações, sem banco
-node tests/xlsx.test.js    # gerador de .xlsx: 10 testes, sem banco nem navegador
+php -S localhost:8080 -t public      # application (needs a SQL Server to sign in)
+docker compose --profile demo up -d  # alternative: app + demo SQL Server
 ```
 
-- `tests/run.php` é um runner próprio (função `check(nome, atual, esperado)`) que cobre `Result`, `pipe`/`partial`/`take`/`pipeline`, `Config::fromEnv`, funções de `functions.php`/`ddl.php` e `Connection::fromLogin`. Não precisa de banco.
-- `tests/xlsx.test.js` lê o ZIP gerado, confere assinaturas, CRC-32 e o conteúdo dos XMLs.
-- **Não há testes automáticos** para controllers, `QueryExecutor`, `CatalogRepository` (dependem de SQL Server) nem para o `app.js`. Valide essas partes manualmente, por exemplo com o perfil `demo` do Docker.
+## Tests
 
-Antes de abrir um PR: rode os dois comandos acima e `php -l` nos arquivos alterados.
+```bash
+php tests/run.php          # pure functions and value objects: 92 checks, no database
+node tests/xlsx.test.js    # .xlsx generator: 11 tests, no database or browser
+```
 
-## Convenções de código
+- `tests/run.php` is a custom runner (the `check(name, actual, expected)` function) that covers `Result`, `pipe`/`partial`/`take`/`pipeline`, `Config::fromEnv`, the functions in `functions.php`/`ddl.php` and `Connection::fromLogin`. It needs no database.
+- `tests/xlsx.test.js` reads the generated ZIP and checks the signatures, the CRC-32 and the contents of the XML files.
+- **There are no automated tests** for the controllers, `QueryExecutor`, `CatalogRepository` (they depend on SQL Server) or `app.js`. Validate those parts manually, for example with Docker's `demo` profile.
 
-O projeto combina três estilos, cada um onde rende mais (veja a [arquitetura](arquitetura.md)):
+Before opening a PR: run the two commands above and `php -l` on the changed files.
 
-- **OO** onde há estado ou efeito: `Session`, `Router`, `QueryExecutor`, repositórios, controllers.
-- **Funcional** para regras de domínio: funções puras em `app/Models/functions.php` e `ddl.php`, `Result` (Either), `pipe`, `pipeline`.
-- **Imutabilidade:** `Request`, `Response`, `Connection`, `QueryResult`, `Config` e `Result` são `readonly`.
-- Todo arquivo PHP começa com `declare(strict_types=1);`.
-- Erros esperados (validação) são valores (`Result`); exceções ficam para o inesperado.
-- Saída de template sempre com `$e(...)`.
-- Texto da interface e comentários em português do Brasil; identificadores em inglês.
-- Sem autowiring: registre cada dependência em `Application::container()`.
+## Code conventions
 
-## Receitas
+The project combines three styles, each where it pays off most (see the [architecture](architecture.md)):
 
-### Adicionar um endpoint de API
+- **OO** where there is state or side effects: `Session`, `Router`, `QueryExecutor`, repositories, controllers.
+- **Functional** for domain rules: pure functions in `app/Models/functions.php` and `ddl.php`, `Result` (Either), `pipe`, `pipeline`.
+- **Immutability:** `Request`, `Response`, `Connection`, `QueryResult`, `Config` and `Result` are `readonly`.
+- Every PHP file starts with `declare(strict_types=1);`.
+- Expected errors (validation) are values (`Result`); exceptions are for the unexpected.
+- Template output always goes through `$e(...)`.
+- User-facing text (UI, messages, generated SQL comments) is in English (US). Source code comments are still mostly in Brazilian Portuguese; identifiers are in English.
+- No autowiring: register every dependency in `Application::container()`.
 
-1. Declare a rota em `app/routes.php`: `['POST', '/api/minha-acao', [MeuController::class, 'acao'], ['auth.api', 'csrf']]`.
-2. Crie o método no controller. Se ele consultar o banco, leia a conexão com `$this->session->connection()` e chame `$this->session->release()` em seguida.
-3. Coloque a lógica de acesso a dados em um repositório (`app/Models/`) e as regras puras em `functions.php`.
-4. No `ExplorerController`, use `respond(fn () => [...])` para obter o envelope `{ok, error}` automático em falhas do banco.
-5. Registre controller e dependências novas em `Application::container()`.
-6. Escreva testes das funções puras em `tests/run.php`.
-7. Documente a rota em [`docs/api.md`](api.md).
+## Recipes
 
-O `Router` casa o caminho **exato**; não há parâmetros na URL. Envie os dados no corpo JSON.
+### Add an API endpoint
 
-### Adicionar um parâmetro de configuração
+1. Declare the route in `app/routes.php`: `['POST', '/api/my-action', [MyController::class, 'action'], ['auth.api', 'csrf']]`.
+2. Create the method on the controller. If it queries the database, read the connection with `$this->session->connection()` and call `$this->session->release()` right after.
+3. Put the data-access logic in a repository (`app/Models/`) and the pure rules in `functions.php`.
+4. In `ExplorerController`, use `respond(fn () => [...])` to get the automatic `{ok, error}` envelope on database failures.
+5. Register the new controller and dependencies in `Application::container()`.
+6. Write tests for the pure functions in `tests/run.php`.
+7. Document the route in [`docs/api.md`](api.md).
 
-1. Inclua a chave e o padrão em `config/config.php`.
-2. Se deve existir variável de ambiente, adicione a linha em `Config::ENV_MAP` (nome, chave, tipo `string|int|bool|list`).
-3. Repasse a variável no `docker-compose.yml` e documente em `.env.example`.
-4. Atualize a tabela em [Configuração](configuracao.md#parâmetros).
+The `Router` matches the **exact** path; there are no URL parameters. Send the data in the JSON body.
 
-### Adicionar um formato de exportação
+### Add a setting
 
-No `app.js`, a seção `// ---------- Exportação ----------` tem `exportRows()` (dados), os conversores (`toCsv`, `toJson`, `XlsxWriter.build`) e `exportName(sql, ext)` (nome do arquivo no padrão `schema.tabela_ddMMyyyy.ext`). Crie o conversor, o botão no `app/Views/editor.php` e o listener em `bind()` (junto de `btn-csv`/`btn-xls`/`btn-json`).
+1. Add the key and its default to `config/config.php`.
+2. If it should have an environment variable, add a line to `Config::ENV_MAP` (name, key, type `string|int|bool|list`).
+3. Pass the variable through in `docker-compose.yml` and document it in `.env.example`.
+4. Update the table in [Configuration](configuration.md#settings).
 
-### Mexer no gerador `.xlsx`
+### Add an export format
 
-`public/assets/js/xlsx.js` é um módulo UMD enxuto: no navegador cria `XlsxWriter`; no Node faz `module.exports`. Para células numéricas ele usa o tipo SQL da coluna (`NUMERIC_TYPE`) e só grava número quando não há perda de precisão (até 15 dígitos). Alterações devem manter `node tests/xlsx.test.js` passando; para validar de ponta a ponta, abra o arquivo gerado no Excel ou no LibreOffice.
+In `app.js`, the `// ---------- Exportação ----------` section has `exportRows()` (data), the converters (`toCsv`, `toJson`, `XlsxWriter.build`) and `exportName(sql, ext)` (file name in the `schema.table_ddMMyyyy.ext` pattern). Create the converter, the button in `app/Views/editor.php` and the listener in `bind()` (next to `btn-csv`/`btn-xls`/`btn-json`).
 
-## Estrutura do DDL gerado
+### Work on the `.xlsx` generator
 
-`build_create_table` monta, nesta ordem: `CREATE TABLE` (colunas, identity, computadas, defaults, PK/UNIQUE e checks), `CREATE INDEX` para os demais índices e `ALTER TABLE … ADD CONSTRAINT … FOREIGN KEY`, cada bloco terminado em `GO`. Só chaves estrangeiras de saída (`direction = out`) entram.
+`public/assets/js/xlsx.js` is a lean UMD module: in the browser it creates `XlsxWriter`; in Node it does `module.exports`. For numeric cells it uses the column's SQL type (`NUMERIC_TYPE`) and only writes a number when there is no precision loss (up to 15 digits). Changes must keep `node tests/xlsx.test.js` passing; to validate end to end, open the generated file in Excel or LibreOffice.
 
-## Contribuir
+## Structure of the generated DDL
 
-**Pendente:** não há `CONTRIBUTING.md`, licença ou política de branches definidas no repositório. O histórico usa mensagens de commit descritivas em inglês (por exemplo, "Add XLSX export functionality and corresponding tests").
+`build_create_table` assembles, in this order: `CREATE TABLE` (columns, identity, computed columns, defaults, PK/UNIQUE and checks), `CREATE INDEX` for the other indexes and `ALTER TABLE … ADD CONSTRAINT … FOREIGN KEY`, each block ending in `GO`. Only outgoing foreign keys (`direction = out`) are included.
+
+## Contributing
+
+**Pending:** the repository defines no `CONTRIBUTING.md`, license or branch policy. The history uses descriptive commit messages in English (for example, "Add XLSX export functionality and corresponding tests").

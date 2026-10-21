@@ -22,7 +22,7 @@ final class Middleware
     {
         return static fn (Request $r, callable $next): Response => $session->isLoggedIn()
             ? $next($r)
-            : Response::json(['ok' => false, 'error' => ['message' => 'Sessão expirada. Faça login novamente.']], 401);
+            : Response::json(['ok' => false, 'error' => ['message' => 'Session expired. Please sign in again.']], 401);
     }
 
     /** Quem já está logado não precisa ver a tela de login. */
@@ -42,8 +42,8 @@ final class Middleware
             }
 
             return str_starts_with($r->path, '/api/')
-                ? Response::json(['ok' => false, 'error' => ['message' => 'Token CSRF inválido. Recarregue a página.']], 403)
-                : Response::html('Sessão expirada. <a href="' . htmlspecialchars($r->url('login')) . '">Voltar ao login</a>.', 403);
+                ? Response::json(['ok' => false, 'error' => ['message' => 'Invalid CSRF token. Reload the page.']], 403)
+                : Response::html('Session expired. <a href="' . htmlspecialchars($r->url('login')) . '">Back to sign in</a>.', 403);
         };
     }
 }

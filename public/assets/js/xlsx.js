@@ -13,6 +13,7 @@
     const XML_HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
     const MAX_CELL_CHARS = 32767; // limite de texto por célula no Excel
     const NUMERIC_TYPE = /int|decimal|numeric|float|real|money/i;
+    const DECIMAL_TYPE = /^(decimal|numeric|money|smallmoney)$/i;
     const encoder = new TextEncoder();
 
     // ---------- ZIP (stored) ----------
@@ -120,7 +121,9 @@
     function cellXml(value, type, ref) {
         if (value === null || value === undefined) return '';
         const number = asNumber(value, type);
-        return number !== null ? `<c r="${ref}"><v>${number}</v></c>` : textCell(ref, String(value));
+        // Decimais exatos já formatados com duas casas ("30000.00") ganham o formato 0.00 do Excel.
+        const style = typeof value === 'string' && DECIMAL_TYPE.test(type) && /\.\d\d$/.test(value) ? ' s="2"' : '';
+        return number !== null ? `<c r="${ref}"${style}><v>${number}</v></c>` : textCell(ref, String(value));
     }
 
     function columnWidths(columns, rows) {
@@ -160,19 +163,20 @@
             + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
             + '</Relationships>',
         'xl/workbook.xml': `${XML_HEAD}<workbook xmlns="${NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">`
-            + '<sheets><sheet name="Resultado" sheetId="1" r:id="rId1"/></sheets></workbook>',
+            + '<sheets><sheet name="Result" sheetId="1" r:id="rId1"/></sheets></workbook>',
         'xl/_rels/workbook.xml.rels': `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`
             + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
             + '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
             + '</Relationships>',
-        // estilo 0 = padrão, estilo 1 = cabeçalho em negrito
+        // estilo 0 = padrão, 1 = cabeçalho em negrito, 2 = número com duas casas (0.00)
         'xl/styles.xml': `${XML_HEAD}<styleSheet xmlns="${NS}">`
             + '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'
             + '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
             + '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
             + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-            + '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
-            + '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>'
+            + '<cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+            + '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
+            + '<xf numFmtId="2" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs>'
             + '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>',
     };
 

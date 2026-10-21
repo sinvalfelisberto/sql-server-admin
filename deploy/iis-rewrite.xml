@@ -1,14 +1,14 @@
 <!--
-  Trecho para colar dentro de <system.webServer> do web.config do site no IIS, quando o projeto
-  inteiro fica numa pasta (sem apontar o site para public/). Requer o módulo URL Rewrite.
+  Snippet to paste inside <system.webServer> in the site's IIS web.config, when the whole
+  project lives in one folder (the site cannot point at public/). Requires the URL Rewrite module.
 
-  - assets/... é servido a partir de public/assets/...
-  - todo o resto (inclusive app/, config/, tests/, .env, *.md) cai no index.php da raiz,
-    então nenhum arquivo do projeto é exposto.
+  - assets/... is served from public/assets/...
+  - everything else (including app/, config/, tests/, .env, *.md) falls through to the root
+    index.php, so no project file is exposed.
 -->
 <rewrite>
   <rules>
-    <rule name="SQLWM assets já resolvidos" stopProcessing="true">
+    <rule name="SQLWM assets already resolved" stopProcessing="true">
       <match url="^public/assets/" />
       <action type="None" />
     </rule>

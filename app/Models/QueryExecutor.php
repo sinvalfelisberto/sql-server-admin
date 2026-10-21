@@ -106,7 +106,7 @@ final class QueryExecutor
     {
         $batches = split_batches($sql);
         if (count($batches) !== 1) {
-            throw new \RuntimeException('A exportação completa aceita um único comando SELECT.');
+            throw new \RuntimeException('The full export accepts a single SELECT statement only.');
         }
 
         $pdo = $this->factory->open($connection, $database);
@@ -114,7 +114,7 @@ final class QueryExecutor
         $stmt = $pdo->query($batches[0]);
         while ($stmt->columnCount() === 0) {
             if (!$stmt->nextRowset()) {
-                throw new \RuntimeException('A consulta não retornou um conjunto de resultados.');
+                throw new \RuntimeException('The query did not return a result set.');
             }
         }
 
@@ -151,7 +151,7 @@ final class QueryExecutor
             if ($stmt->columnCount() > 0) {
                 yield ['set' => $this->readSet($stmt, $limit)];
             } elseif (($affected = $stmt->rowCount()) >= 0) {
-                yield ['message' => "($affected linha(s) afetada(s))"];
+                yield ['message' => "($affected row(s) affected)"];
             }
         } while ($stmt->nextRowset());
 

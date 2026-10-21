@@ -20,7 +20,7 @@ final class Container
     public function get(string $id): mixed
     {
         if (!array_key_exists($id, $this->instances)) {
-            $factory = $this->factories[$id] ?? throw new RuntimeException("Serviço não registrado: $id");
+            $factory = $this->factories[$id] ?? throw new RuntimeException("Service not registered: $id");
             $this->instances[$id] = $factory($this);
         }
 

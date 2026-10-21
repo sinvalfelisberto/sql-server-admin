@@ -1,11 +1,12 @@
-# Decisões de arquitetura (ADRs)
+# Architecture decisions (ADRs)
 
-Registros curtos das decisões que moldam o projeto. Formato: contexto, decisão, alternativas, consequências.
+Short records of the decisions that shape the project. Format: context, decision, alternatives, consequences.
 
-| # | Decisão | Status |
+| # | Decision | Status |
 |---|---|---|
-| [0001](0001-sem-composer-nem-build.md) | Sem Composer e sem build de front-end | Aceita |
-| [0002](0002-credenciais-na-sessao.md) | Credenciais na sessão PHP e conexão nova por requisição | Aceita |
-| [0003](0003-xlsx-no-cliente.md) | Exportação no cliente e gerador `.xlsx` próprio | Aceita |
+| [0001](0001-no-composer-no-build.md) | No Composer and no front-end build | Accepted |
+| [0002](0002-credentials-in-session.md) | Credentials in the PHP session and a new connection per request | Accepted |
+| [0003](0003-client-side-xlsx.md) | Client-side export and an in-house `.xlsx` generator | Accepted (partly superseded by [0004](0004-server-side-pagination.md) for paginated results) |
+| [0004](0004-server-side-pagination.md) | Server-side pagination with `OFFSET/FETCH` and streamed full export | Accepted |
 
-> Os ADRs registram o que está no código e no README. As motivações marcadas como *inferidas* não estão escritas no repositório; confirme com a equipe antes de tratá-las como histórico.
+> The ADRs record what is in the code and the README. Motivations marked *inferred* are not written down in the repository; confirm them with the team before treating them as history.

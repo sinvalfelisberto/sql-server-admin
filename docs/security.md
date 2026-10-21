@@ -1,44 +1,47 @@
-# Segurança
+# Security
 
-A aplicação executa **SQL arbitrário com as credenciais de quem fez login**. Ela não substitui o controle de acesso do SQL Server: quem consegue entrar consegue fazer tudo o que o login permite, inclusive `UPDATE`, `DELETE` e DDL. Não existe modo somente leitura (consta no PRD, mas não foi implementado).
+The application runs **arbitrary SQL with the credentials of whoever signed in**. It does not replace SQL Server's access control: whoever can sign in can do everything the login allows, including `UPDATE`, `DELETE` and DDL. There is no read-only mode (it is in the PRD but was not implemented).
 
-## Recomendações de implantação
+## Deployment recommendations
 
-1. **Use HTTPS** em qualquer ambiente fora do localhost. As senhas trafegam no formulário de login.
-2. **Preencha `allowed_servers`** para impedir que a aplicação sirva de proxy para qualquer host da rede (SSRF). Vazio significa "qualquer servidor".
-3. **Menor privilégio:** crie logins com só as permissões necessárias. Sem `VIEW DEFINITION`, o **Ver DDL** de procedures e views não funciona.
-4. **Exponha só o necessário.** Com `public/` como document root, `app/` e `config/` ficam inacessíveis. Sem essa opção, use o `index.php` da raiz e as regras de [IIS](configuracao.md#iis-projeto-inteiro-em-uma-pasta), que mandam tudo, exceto `assets/`, para o front controller.
-5. Restrinja o acesso de rede (VPN, firewall, allowlist de IP) quando possível.
-6. O `docker-compose.yml` não traz senha: defina `MSSQL_SA_PASSWORD` no `.env` (não versionado) para usar o perfil `demo`, e nunca versione esse arquivo.
+1. **Use HTTPS** in any environment other than localhost. Passwords travel in the login form.
+2. **Fill in `allowed_servers`** to stop the application from acting as a proxy to any host on the network (SSRF). Empty means "any server".
+3. **Least privilege:** create logins with only the permissions they need. Without `VIEW DEFINITION`, **View DDL** for procedures and views does not work.
+4. **Expose only what is needed.** With `public/` as the document root, `app/` and `config/` are unreachable. Without that option, use the root `index.php` and the [IIS](configuration.md#iis-whole-project-in-one-folder) rules, which send everything except `assets/` to the front controller.
+5. Restrict network access (VPN, firewall, IP allowlist) when possible.
+6. `docker-compose.yml` ships no password: set `MSSQL_SA_PASSWORD` in `.env` (not versioned) to use the `demo` profile, and never commit that file.
 
-## O que a aplicação faz
+## What the application does
 
-| Área | Medida | Onde |
+| Area | Measure | Where |
 |---|---|---|
-| Senha | Fica na sessão PHP, no servidor; nunca é enviada ao navegador | `Session`, `Connection` |
-| Cookie de sessão | Nome `sqlwm`, `HttpOnly`, `SameSite=Strict`, `Secure` quando HTTPS, modo estrito de sessão | `Session::start`, `docker/php.ini` |
-| Fixação de sessão | `session_regenerate_id(true)` no login | `Session::login` |
-| CSRF | Todo `POST` exige token (cabeçalho ou campo), comparado com `hash_equals` | `Middleware::csrf` |
-| Força bruta | Atraso de 0,5 s em falha de login | `AuthController::verify` |
-| Expiração | Sessão encerra após `session_timeout` s sem uso (padrão 3600) | `Session::start` |
-| Servidor de destino | Nome validado por expressão regular; lista de permitidos opcional | `normalize_server`, `ensure_server_allowed` |
-| Injeção em opções de conexão | O banco não entra no DSN; usa `USE` com identificador escapado (`]` vira `]]`) | `ConnectionFactory`, `quote_identifier` |
-| Catálogo | Consultas com parâmetros (`prepare`/`execute`) | `CatalogRepository`, `ObjectScripter` |
-| XSS | Toda saída de template passa por `e()` (`htmlspecialchars`) | `Views` |
-| Clickjacking e sniffing | `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin` | `Application` |
-| Vazamento de erros | Exceções inesperadas vão para o log; o cliente recebe mensagem genérica. `display_errors=Off`, `expose_php=Off` | `Application`, `docker/php.ini` |
-| Cache | Respostas JSON com `Cache-Control: no-store` | `Response::json` |
-| Limites | `query_timeout`, `max_rows` e `memory_limit` limitam o custo de cada consulta | `Config`, `QueryExecutor` |
+| Password | Kept in the PHP session, on the server; never sent to the browser | `Session`, `Connection` |
+| Session cookie | Name `sqlwm`, `HttpOnly`, `SameSite=Strict`, `Secure` over HTTPS, strict session mode | `Session::start`, `docker/php.ini` |
+| Session fixation | `session_regenerate_id(true)` on login | `Session::login` |
+| CSRF | Every `POST` requires a token (header or field), compared with `hash_equals` | `Middleware::csrf` |
+| Brute force | 0.5 s delay on a failed login | `AuthController::verify` |
+| Expiry | The session ends after `session_timeout` s of inactivity (default 3600) | `Session::start` |
+| Target server | Name validated by a regular expression; optional allowlist | `normalize_server`, `ensure_server_allowed` |
+| Injection in connection options | The database is not part of the DSN; `USE` with an escaped identifier is used (`]` becomes `]]`) | `ConnectionFactory`, `quote_identifier` |
+| Catalog | Parameterized queries (`prepare`/`execute`) | `CatalogRepository`, `ObjectScripter` |
+| XSS | All template output goes through `e()` (`htmlspecialchars`) | `Views` |
+| Clickjacking and sniffing | `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin` | `Application` |
+| Error leakage | Unexpected exceptions go to the log; the client gets a generic message. `display_errors=Off`, `expose_php=Off` | `Application`, `docker/php.ini` |
+| Caching | JSON responses carry `Cache-Control: no-store` | `Response::json` |
+| Limits | `query_timeout`, `max_rows` (per page when paginated) and `memory_limit` bound the cost of each query | `Config`, `QueryExecutor` |
+| Export | `POST /api/export` requires a session and CSRF like the other routes; the file name is sanitized (`safe_filename`) | `QueryController::export` |
 
-## Limitações conhecidas
+## Known limitations
 
-- **Sem controle por usuário no nível da aplicação:** não há perfis, auditoria ou lista de comandos bloqueados.
-- **Sem limitação de taxa** (rate limit) além do atraso de 0,5 s no login falho.
-- **Senha em texto na sessão:** quem tem acesso de leitura ao armazenamento de sessões do servidor (`session.save_path`) consegue ler as credenciais dos usuários logados. Restrinja as permissões dessa pasta.
-- **`localStorage`:** histórico e favoritos ficam no navegador, em texto, e podem conter dados sensíveis digitados em consultas. Use perfil de navegador próprio em máquinas compartilhadas.
-- **Confiar no certificado do servidor** desativa a validação do certificado TLS entre a aplicação e o SQL Server (`TrustServerCertificate`). Prefira certificado válido e desmarque a opção.
-- **CSV e fórmulas:** o CSV escreve o texto das células sem neutralizar o início (`=`, `+`, `-`, `@`). Aberto no Excel, um valor assim pode ser interpretado como fórmula. Se os dados vierem de terceiros, prefira o botão **Excel**: o `.xlsx` grava todo texto como texto (`inlineStr`), não como fórmula.
+- **No per-user control at the application level:** there are no roles, audit trail or blocklist of commands.
+- **No rate limiting** beyond the 0.5 s delay on a failed login.
+- **Complete export has no PHP time limit and, by default, no row cap:** an authenticated user can keep the server busy exporting a huge table. Set `export_max_rows` (`SQLWM_EXPORT_MAX_ROWS`) and review `query_timeout` in shared environments.
+- **Pagination re-runs the query on every page:** pages far into large tables cost the same as the query up to that point.
+- **Clear-text password in the session:** anyone with read access to the server's session storage (`session.save_path`) can read the credentials of signed-in users. Restrict the permissions on that folder.
+- **`localStorage`:** history and favorites stay in the browser, as plain text, and can contain sensitive data typed into queries. Use a dedicated browser profile on shared machines.
+- **Trusting the server certificate** disables TLS certificate validation between the application and SQL Server (`TrustServerCertificate`). Prefer a valid certificate and uncheck the option.
+- **CSV and formulas:** the CSV writes cell text without neutralizing the start (`=`, `+`, `-`, `@`). Opened in Excel, such a value can be interpreted as a formula. If the data comes from third parties, prefer the **Excel** button: the `.xlsx` writes all text as text (`inlineStr`), not as a formula.
 
-## Reportar uma vulnerabilidade
+## Reporting a vulnerability
 
-O projeto não tem canal de segurança publicado (**pendente:** definir contato e política, por exemplo um `SECURITY.md`).
+The project has no published security channel (**pending:** define a contact and a policy, for example a `SECURITY.md`).

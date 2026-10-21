@@ -12,6 +12,7 @@ final readonly class Config
         'SQLWM_ENCRYPT'                  => ['encrypt', 'bool'],
         'SQLWM_TRUST_SERVER_CERTIFICATE' => ['trust_server_certificate', 'bool'],
         'SQLWM_MAX_ROWS'                 => ['max_rows', 'int'],
+        'SQLWM_CSV_SEPARATOR'            => ['csv_separator', 'string'],
         'SQLWM_EXPORT_MAX_ROWS'          => ['export_max_rows', 'int'],
         'SQLWM_QUERY_TIMEOUT'            => ['query_timeout', 'int'],
         'SQLWM_SESSION_TIMEOUT'          => ['session_timeout', 'int'],

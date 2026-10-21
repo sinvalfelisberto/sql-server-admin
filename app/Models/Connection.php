@@ -32,7 +32,7 @@ final readonly class Connection
         return normalize_server($display)
             ->flatMap(static fn (string $server): Result => ensure_server_allowed($allowedServers, $server))
             ->flatMap(static fn (string $server): Result => $user === ''
-                ? Result::err('Informe o usuário.')
+                ? Result::err('Enter the user name.')
                 : Result::ok(new self($server, $user, (string) ($input['pass'] ?? ''), $trustCertificate, $display)));
     }
 

@@ -1,12 +1,12 @@
-# 0002 – Credenciais na sessão PHP e conexão nova por requisição
+# 0002 – Credentials in the PHP session and a new connection per request
 
-- **Status:** aceita
-- **Contexto:** a aplicação usa a autenticação SQL Server de cada usuário, não uma conta de serviço. É preciso reutilizar as credenciais entre requisições sem enviá-las de volta ao navegador.
-- **Decisão:** a senha fica na sessão PHP, no servidor (`Session`), e cada requisição de API abre uma conexão `PDO` nova por meio de `ConnectionFactory`, selecionando o banco com `USE [banco]`. O controller chama `Session::release()` antes de consultar o banco para não bloquear a sessão.
-- **Alternativas consideradas:** conexões persistentes; token/credencial guardada no navegador; conta de serviço única. *Inferidas:* conexão persistente não combina com credenciais por usuário, e guardar a senha no cliente exporia o segredo.
-- **Consequências:**
-  - (+) A senha nunca é enviada ao navegador; cookie `HttpOnly`/`SameSite=Strict` e token CSRF.
-  - (+) O SQL Server aplica as permissões de cada usuário; não existe um "superusuário" da aplicação.
-  - (−) Custo de abrir conexão a cada chamada (login timeout de 10 s por padrão).
-  - (−) A senha fica em texto no armazenamento de sessões do servidor; proteja `session.save_path` (veja [Segurança](../seguranca.md)).
-  - (−) Transações e variáveis de sessão do SQL Server **não** persistem entre execuções.
+- **Status:** accepted
+- **Context:** the application uses each user's own SQL Server authentication, not a service account. The credentials must be reused across requests without being sent back to the browser.
+- **Decision:** the password stays in the PHP session, on the server (`Session`), and every API request opens a new `PDO` connection through `ConnectionFactory`, selecting the database with `USE [database]`. The controller calls `Session::release()` before querying the database so the session is not locked.
+- **Alternatives considered:** persistent connections; a token or credential kept in the browser; a single service account. *Inferred:* persistent connections do not fit per-user credentials, and keeping the password on the client would expose the secret.
+- **Consequences:**
+  - (+) The password is never sent to the browser; `HttpOnly`/`SameSite=Strict` cookie and CSRF token.
+  - (+) SQL Server enforces each user's permissions; there is no application "superuser".
+  - (−) The cost of opening a connection on every call (login timeout of 10 s by default).
+  - (−) The password sits in clear text in the server's session storage; protect `session.save_path` (see [Security](../security.md)).
+  - (−) SQL Server transactions and session variables do **not** persist between executions.

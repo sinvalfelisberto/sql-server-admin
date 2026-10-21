@@ -18,6 +18,9 @@ use function App\Models\ensure_server_allowed;
 use function App\Models\group_foreign_keys;
 use function App\Models\group_indexes;
 use function App\Models\csv_line;
+use function App\Models\format_decimal;
+use function App\Models\is_decimal_type;
+use function App\Models\csv_separator;
 use function App\Models\mask_sql;
 use function App\Models\normalize_server;
 use function App\Models\paginate_sql;
@@ -67,19 +70,19 @@ check('pipeline ordem externo->interno', pipeline([$mw('a'), $mw('b')], fn (stri
 check('server simples', $unwrap(normalize_server('localhost')), 'localhost');
 check('server host:porta vira vírgula', $unwrap(normalize_server('CCTDCADNT231:50100')), 'CCTDCADNT231,50100');
 check('server instância', $unwrap(normalize_server('host\\SQLEXPRESS')), 'host\\SQLEXPRESS');
-check('server injeção de DSN', $unwrap(normalize_server('host;Database=x')), 'ERR:Nome de servidor inválido.');
-check('server vazio', $unwrap(normalize_server('  ')), 'ERR:Nome de servidor inválido.');
+check('server injeção de DSN', $unwrap(normalize_server('host;Database=x')), 'ERR:Invalid server name.');
+check('server vazio', $unwrap(normalize_server('  ')), 'ERR:Invalid server name.');
 
 // --- ensure_server_allowed
 check('allowlist vazia permite', $unwrap(ensure_server_allowed([], 'x')), 'x');
 check('allowlist normaliza', $unwrap(ensure_server_allowed(['Host:1433'], 'host,1433')), 'host,1433');
-check('allowlist bloqueia', $unwrap(ensure_server_allowed(['a'], 'b')), 'ERR:Servidor não permitido.');
+check('allowlist bloqueia', $unwrap(ensure_server_allowed(['a'], 'b')), 'ERR:Server not allowed.');
 
 // --- Connection::fromLogin
 $ok = Connection::fromLogin(['server' => 'h:1', 'user' => 'sa', 'pass' => 'p'], [], true);
 check('login válido', $ok->fold(fn () => null, fn (Connection $c): array => [$c->server, $c->user, $c->display]), ['h,1', 'sa', 'h:1']);
-check('login sem usuário', $unwrap(Connection::fromLogin(['server' => 'h', 'user' => ' '], [], true)), 'ERR:Informe o usuário.');
-check('login servidor inválido', $unwrap(Connection::fromLogin(['server' => 'a b', 'user' => 'u'], [], true)), 'ERR:Nome de servidor inválido.');
+check('login sem usuário', $unwrap(Connection::fromLogin(['server' => 'h', 'user' => ' '], [], true)), 'ERR:Enter the user name.');
+check('login servidor inválido', $unwrap(Connection::fromLogin(['server' => 'a b', 'user' => 'u'], [], true)), 'ERR:Invalid server name.');
 $c = new Connection('s', 'u', 'p', true, 's');
 check('Connection ida e volta', Connection::fromArray($c->withDatabase('db')->toArray())->database, 'db');
 check('Connection imutável', $c->database, '');
@@ -173,6 +176,19 @@ check('mask_sql mantém tamanho', strlen(mask_sql("SELECT 'a' /* x */ , [b c] --
 
 // --- Exportação em fluxo
 check('csv_line aspas e nulos', csv_line(['a;b', null, 'x"y', 3, "l1\nl2", 'ok']), '"a;b";;"x""y";3;"l1' . "\n" . 'l2";ok');
+check('csv_line com vírgula', csv_line(['a,b', 'c;d', null], ','), '"a,b",c;d,');
+check('csv_line com tabulação', csv_line(['a b', "c\td"], "\t"), "a b\t\"c\td\"");
+check('csv_separator válidos', [csv_separator(';'), csv_separator(','), csv_separator('|'), csv_separator('tab'), csv_separator('TAB'), csv_separator("\t")], [';', ',', '|', "\t", "\t", "\t"]);
+check('csv_separator inválido cai no padrão', [csv_separator('x'), csv_separator(null), csv_separator('', ','), csv_separator(' ')], [';', ';', ',', ';']);
+check('format_decimal 4 casas zeradas', format_decimal('30000.0000'), '30000.00');
+check('format_decimal sem zero à esquerda', format_decimal('.0000'), '0.00');
+check('format_decimal negativo', format_decimal('-.5000'), '-0.50');
+check('format_decimal zero negativo', format_decimal('-.0000'), '0.00');
+check('format_decimal já com 2 casas', format_decimal('5.00'), '5.00');
+check('format_decimal uma casa', format_decimal('0.5'), '0.50');
+check('format_decimal mantém precisão', [format_decimal('12.345600'), format_decimal('.0125')], ['12.3456', '0.0125']);
+check('format_decimal inteiro e texto intactos', [format_decimal('7'), format_decimal('abc'), format_decimal('1E+3'), format_decimal('')], ['7', 'abc', '1E+3', '']);
+check('is_decimal_type', [is_decimal_type('money'), is_decimal_type('DECIMAL'), is_decimal_type('numeric'), is_decimal_type('smallmoney'), is_decimal_type('float'), is_decimal_type('int')], [true, true, true, true, false, false]);
 check('unique_keys', unique_keys(['a', 'b', 'a', 'a']), ['a', 'b', 'a_2', 'a_3']);
 check('safe_filename', safe_filename('Sales.Orders_21102026'), 'Sales.Orders_21102026');
 check('safe_filename perigoso', safe_filename('../a b"c'), 'a_b_c');

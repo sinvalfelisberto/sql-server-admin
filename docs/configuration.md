@@ -1,121 +1,122 @@
-# Configuração e operação
+# Configuration and operations
 
-## Requisitos
+## Requirements
 
-| Item | Versão |
+| Item | Version |
 |---|---|
-| PHP | 8.2 ou superior (o código usa `readonly class`; no PHP 8.1 ou anterior a aplicação não inicia) |
-| Extensões PHP | `pdo_sqlsrv` e `sqlsrv` |
-| Driver | Microsoft ODBC Driver 17 ou 18 for SQL Server |
-| Navegador | Moderno, com `<dialog>`, `fetch`, `Blob` e `localStorage` |
-| Node.js | Só para rodar `tests/xlsx.test.js` (usa `zlib.crc32`, disponível no Node 20.15+/22.2+ — **pendente:** versão mínima exata não verificada) |
+| PHP | 8.2 or later (the code uses `readonly class`; on PHP 8.1 or earlier the application does not start) |
+| PHP extensions | `pdo_sqlsrv` and `sqlsrv` |
+| Driver | Microsoft ODBC Driver 17 or 18 for SQL Server |
+| Browser | Modern, with `<dialog>`, `fetch`, `Blob` and `localStorage` |
+| Node.js | Only to run `tests/xlsx.test.js` (it uses `zlib.crc32`, available in Node 20.15+/22.2+ — **pending:** exact minimum version not verified) |
 
-A imagem Docker traz PHP 8.3, Apache, ODBC Driver 18 e `pdo_sqlsrv`.
+The Docker image ships PHP 8.3, Apache, ODBC Driver 18 and `pdo_sqlsrv`.
 
-## Parâmetros
+## Settings
 
-Precedência: `config/config.php` < `config/config.local.php` < variáveis de ambiente. Variáveis vazias ou inválidas são ignoradas.
+Precedence: `config/config.php` < `config/config.local.php` < environment variables. Empty or invalid variables are ignored.
 
-| Chave | Variável de ambiente | Tipo | Padrão | Descrição |
+| Key | Environment variable | Type | Default | Description |
 |---|---|---|---|---|
-| `app_name` | — | string | `SQL Web Manager` | Nome exibido |
-| `version` | — | string | `1.0.0` | Versão exibida no rodapé |
-| `default_server` | `SQLWM_DEFAULT_SERVER` | string | vazio | Servidor sugerido no login |
-| `allowed_servers` | `SQLWM_ALLOWED_SERVERS` | lista (vírgula) | vazia | Servidores permitidos. Vazia = qualquer um. Formatos aceitos iguais aos do login |
-| `trust_server_certificate` | `SQLWM_TRUST_SERVER_CERTIFICATE` | bool | `true` | Valor inicial do checkbox de certificado |
-| `encrypt` | `SQLWM_ENCRYPT` | bool | `null` | `null` = padrão do driver; `true`/`false` força |
-| `login_timeout` | — | int (s) | `10` | Tempo para conectar |
-| `query_timeout` | `SQLWM_QUERY_TIMEOUT` | int (s) | `120` | Tempo máximo por consulta |
-| `max_rows` | `SQLWM_MAX_ROWS` | int | `10000` | Teto de linhas por result set; em consulta paginada vale **por página** (tamanho máximo da página) |
-| `export_max_rows` | `SQLWM_EXPORT_MAX_ROWS` | int | `0` | Teto de linhas na exportação completa (CSV/JSON/Excel de resultado paginado); `0` = sem teto |
-| `session_timeout` | `SQLWM_SESSION_TIMEOUT` | int (s) | `3600` | Inatividade até desconectar |
+| `app_name` | — | string | `SQL Web Manager` | Displayed name |
+| `version` | — | string | `1.0.0` | Version shown in the footer |
+| `default_server` | `SQLWM_DEFAULT_SERVER` | string | empty | Server suggested on the login screen |
+| `allowed_servers` | `SQLWM_ALLOWED_SERVERS` | list (comma) | empty | Allowed servers. Empty = any. Accepted formats are the same as on the login screen |
+| `trust_server_certificate` | `SQLWM_TRUST_SERVER_CERTIFICATE` | bool | `true` | Initial value of the certificate checkbox |
+| `encrypt` | `SQLWM_ENCRYPT` | bool | `null` | `null` = driver default; `true`/`false` forces it |
+| `login_timeout` | — | int (s) | `10` | Time allowed to connect |
+| `query_timeout` | `SQLWM_QUERY_TIMEOUT` | int (s) | `120` | Maximum time per query |
+| `max_rows` | `SQLWM_MAX_ROWS` | int | `10000` | Row cap per result set; on a paginated query it applies **per page** (maximum page size) |
+| `export_max_rows` | `SQLWM_EXPORT_MAX_ROWS` | int | `0` | Row cap for the complete export (CSV/JSON/Excel of a paginated result); `0` = no cap |
+| `csv_separator` | `SQLWM_CSV_SEPARATOR` | string | `;` | Default CSV separator: `;`, `,`, `|` or `tab`. Users can change it on screen (their choice is remembered in the browser); any other value falls back to `;` |
+| `session_timeout` | `SQLWM_SESSION_TIMEOUT` | int (s) | `3600` | Inactivity before sign-out |
 
-Booleanos aceitam `true/false`, `1/0`, `yes/no`, `on/off`. Em lista, separe por vírgula: `SQLWM_ALLOWED_SERVERS=srv1:1433,srv2`.
+Booleans accept `true/false`, `1/0`, `yes/no`, `on/off`. For lists, separate with commas: `SQLWM_ALLOWED_SERVERS=srv1:1433,srv2`.
 
-Exemplo de `config/config.local.php` (não versionado):
+Example `config/config.local.php` (not versioned):
 
 ```php
 <?php
 return [
-    'default_server'  => 'meuservidor:1433',
-    'allowed_servers' => ['meuservidor:1433'],
+    'default_server'  => 'myserver:1433',
+    'allowed_servers' => ['myserver:1433'],
     'max_rows'        => 5000,
 ];
 ```
 
-## Executar
+## Running
 
-### Docker (recomendado)
+### Docker (recommended)
 
 ```bash
 docker compose up -d
 ```
 
-- Porta padrão `8080`; altere com `SQLWM_PORT` (veja `.env.example`; copie para `.env`).
-- O contêiner tem `healthcheck` em `/login` e `no-new-privileges`.
-- SQL Server de demonstração: `docker compose --profile demo up -d`; defina antes `MSSQL_SA_PASSWORD` (senha forte, sua) no `.env`; não há senha padrão. No login use servidor `mssql`, usuário `sa` e essa senha. A porta dele não é publicada.
-- A imagem só copia `app/`, `config/` e `public/`. Para alterar a configuração, use variáveis de ambiente.
+- Default port `8080`; change it with `SQLWM_PORT` (see `.env.example`; copy it to `.env`).
+- The container has a `healthcheck` on `/login` and `no-new-privileges`.
+- Demo SQL Server: `docker compose --profile demo up -d`; first set `MSSQL_SA_PASSWORD` (a strong password of your own) in `.env`; there is no default password. On the login screen use server `mssql`, user `sa` and that password. Its port is not published.
+- The image only copies `app/`, `config/` and `public/`. To change the configuration, use environment variables.
 
-### PHP local (desenvolvimento)
+### Local PHP (development)
 
 ```bash
 php -S localhost:8080 -t public
 ```
 
-Exige `pdo_sqlsrv` no PHP local. O servidor embutido atende o front controller sem configuração extra.
+Requires `pdo_sqlsrv` in the local PHP. The built-in server serves the front controller with no extra configuration.
 
-### Apache e Nginx
+### Apache and Nginx
 
-Aponte o document root para `public/`. O `public/.htaccess` redireciona para o `index.php` o que não for arquivo nem pasta (precisa de `mod_rewrite` e `AllowOverride All`). Um exemplo completo está em `docker/apache.conf`. No Nginx, use `try_files $uri /index.php$is_args$args;` com PHP-FPM (**pendente:** configuração Nginx não testada neste projeto).
+Point the document root at `public/`. `public/.htaccess` redirects anything that is not a file or folder to `index.php` (requires `mod_rewrite` and `AllowOverride All`). A complete example is in `docker/apache.conf`. On Nginx, use `try_files $uri /index.php$is_args$args;` with PHP-FPM (**pending:** the Nginx configuration has not been tested in this project).
 
-### IIS, projeto inteiro em uma pasta
+### IIS, whole project in one folder
 
-Para hospedagens em que não dá para apontar o site para `public/`:
+For hosts where the site cannot point at `public/`:
 
-1. Copie o projeto todo para a pasta do site. O `index.php` da raiz inclui o `public/index.php`.
-2. Instale o módulo **URL Rewrite** do IIS.
-3. Cole o conteúdo de `deploy/iis-rewrite.xml` dentro de `<system.webServer>` do `web.config` do site. As regras:
-   - `assets/…` → `public/assets/…` (estáticos);
-   - todo o resto → `index.php`, inclusive `app/`, `config/`, `tests/`, `.env` e `*.md`, que por isso nunca são expostos.
-4. Use um handler FastCGI de PHP 8.2+ com `pdo_sqlsrv`.
-5. Garanta que o usuário do pool de aplicativos escreva em `session.save_path`.
+1. Copy the whole project into the site folder. The root `index.php` includes `public/index.php`.
+2. Install the IIS **URL Rewrite** module.
+3. Paste the contents of `deploy/iis-rewrite.xml` inside `<system.webServer>` in the site's `web.config`. The rules:
+   - `assets/…` → `public/assets/…` (static files);
+   - everything else → `index.php`, including `app/`, `config/`, `tests/`, `.env` and `*.md`, which are therefore never exposed.
+4. Use a PHP 8.2+ FastCGI handler with `pdo_sqlsrv`.
+5. Make sure the application pool user can write to `session.save_path`.
 
-A aplicação detecta a subpasta (`SCRIPT_NAME`) e monta as URLs a partir dela. No IIS, quando `REQUEST_URI` não existe, usa `HTTP_X_ORIGINAL_URL`, e trata `HTTPS=off` como conexão não segura.
+The application detects the subfolder (`SCRIPT_NAME`) and builds URLs from it. On IIS, when `REQUEST_URI` does not exist, it uses `HTTP_X_ORIGINAL_URL`, and it treats `HTTPS=off` as a non-secure connection.
 
-> **Atenção:** sem URL Rewrite as rotas (`/login`, `/api/*`) não funcionam. Sem ele seria preciso trocar as URLs para o formato `index.php/…`, o que o código atual não faz.
+> **Note:** without URL Rewrite the routes (`/login`, `/api/*`) do not work. Without it you would have to change the URLs to the `index.php/…` form, which the current code does not do.
 >
-> Isso não foi testado em um IIS real: validado apenas o tratamento da requisição por simulação das variáveis de servidor.
+> This has not been tested on a real IIS: only the request handling was validated, by simulating the server variables.
 
-## Operação
+## Operations
 
 ### Logs
 
-Erros inesperados são gravados com `error_log` (`Classe: mensagem em arquivo:linha`). No Docker, vão para o stderr do contêiner: `docker compose logs app`. O Apache envia acesso e erro para stdout/stderr.
+Unexpected errors are written with `error_log` (`Class: message in file:line`). In Docker they go to the container's stderr: `docker compose logs app`. Apache sends access and error logs to stdout/stderr.
 
-### Sessões
+### Sessions
 
-Ficam no armazenamento padrão do PHP (arquivos em `session.save_path`). Em mais de uma instância atrás de um balanceador, use sessão fixa (sticky) ou um armazenamento de sessão compartilhado.
+They live in PHP's default storage (files in `session.save_path`). With more than one instance behind a load balancer, use sticky sessions or a shared session store.
 
-### Atualizar
+### Updating
 
-Basta substituir os arquivos (ou reconstruir a imagem: `docker compose build && docker compose up -d`). Sessões antigas com formato inválido contam como deslogadas, sem erro. Não há banco próprio nem migrações.
+Just replace the files (or rebuild the image: `docker compose build && docker compose up -d`). Old sessions with an invalid format count as signed out, without an error. There is no database of its own and no migrations.
 
-## Solução de problemas
+## Troubleshooting
 
-| Sintoma | Causa provável | O que fazer |
+| Symptom | Likely cause | What to do |
 |---|---|---|
-| Página em branco ou "Erro interno do servidor." logo na abertura | PHP anterior a 8.2, extensão `pdo_sqlsrv` ausente ou erro de PHP | Veja o log do PHP; confirme `php -v` e `php -m` |
-| `could not find driver` / `SQLSTATE[IM002]` no login | Falta `pdo_sqlsrv` ou o ODBC Driver | Instale as extensões e o msodbcsql 17/18 |
-| `SSL Provider: certificate verify failed` ou erro de certificado | Certificado autoassinado | Marque **Confiar no certificado do servidor**, ou defina `SQLWM_TRUST_SERVER_CERTIFICATE=true` |
-| `Servidor não permitido.` | `allowed_servers` preenchido sem o servidor informado | Inclua o servidor (mesma forma `host,porta`) ou limpe a lista |
-| `Nome de servidor inválido.` | Formato fora de `host`, `host\instancia`, `host,porta`, `host:porta` | Corrija o texto do servidor |
-| Login em HTTP "não pega" (volta ao login) em IIS | Cookie marcado como seguro por `HTTPS=off` | Atualize para a versão atual; confirme `Request::fromGlobals` |
-| 404 em `/login`, `/api/...` no IIS/Apache | Rewrite ausente | Instale/ative URL Rewrite (IIS) ou `mod_rewrite` + `AllowOverride All` (Apache) |
-| CSS e JS não carregam em subpasta | `assets/` não mapeado para `public/assets/` | Aplique `deploy/iis-rewrite.xml` (IIS) ou aponte o document root para `public/` |
-| `Token CSRF inválido. Recarregue a página.` | Sessão expirada, cookies bloqueados ou site em iframe/outro domínio | Recarregue a página e faça login de novo |
-| `Sessão expirada.` ao usar o editor | Inatividade maior que `session_timeout` | Faça login novamente |
-| Resultado "limitado às primeiras N linhas" | AUTO TOP ou `max_rows` (em resultado que não é paginado) | Aumente o AUTO TOP, ou `max_rows` (teto do servidor) |
-| Exportação completa demora ou satura o servidor | Resultado paginado exporta sem teto | Defina `SQLWM_EXPORT_MAX_ROWS`; revise `query_timeout` |
-| Consulta cai por tempo | Excedeu `query_timeout` | Otimize a consulta ou aumente `SQLWM_QUERY_TIMEOUT` |
-| **Ver DDL** diz "Definição indisponível" | Objeto criptografado, inexistente ou sem `VIEW DEFINITION` | Conceda a permissão ao login |
-| Botão **Excel** avisa limite de linhas | Mais de 1.048.575 linhas | Exporte em CSV |
+| Blank page or "Internal server error." right on opening | PHP older than 8.2, missing `pdo_sqlsrv` extension, or a PHP error | Check the PHP log; confirm `php -v` and `php -m` |
+| `could not find driver` / `SQLSTATE[IM002]` on login | `pdo_sqlsrv` or the ODBC Driver is missing | Install the extensions and msodbcsql 17/18 |
+| `SSL Provider: certificate verify failed` or a certificate error | Self-signed certificate | Check **Trust server certificate**, or set `SQLWM_TRUST_SERVER_CERTIFICATE=true` |
+| `Server not allowed.` | `allowed_servers` is set and does not include the server entered | Add the server (same `host,port` form) or clear the list |
+| `Invalid server name.` | Format other than `host`, `host\instance`, `host,port`, `host:port` | Fix the server text |
+| Login over HTTP "does not stick" (returns to the login) on IIS | Cookie flagged as secure because of `HTTPS=off` | Update to the current version; check `Request::fromGlobals` |
+| 404 on `/login`, `/api/...` on IIS/Apache | Rewrite missing | Install/enable URL Rewrite (IIS) or `mod_rewrite` + `AllowOverride All` (Apache) |
+| CSS and JS do not load in a subfolder | `assets/` not mapped to `public/assets/` | Apply `deploy/iis-rewrite.xml` (IIS) or point the document root at `public/` |
+| `Invalid CSRF token. Reload the page.` | Expired session, blocked cookies, or the site in an iframe/another domain | Reload the page and sign in again |
+| `Session expired.` while using the editor | Inactivity longer than `session_timeout` | Sign in again |
+| Result "limited to the first N rows" | AUTO TOP or `max_rows` (on a result that is not paginated) | Raise AUTO TOP, or `max_rows` (the server cap) |
+| Complete export is slow or saturates the server | A paginated result exports with no cap | Set `SQLWM_EXPORT_MAX_ROWS`; review `query_timeout` |
+| Query fails on timeout | Exceeded `query_timeout` | Optimize the query or raise `SQLWM_QUERY_TIMEOUT` |
+| **View DDL** says "Definition unavailable" | Encrypted or nonexistent object, or no `VIEW DEFINITION` | Grant the permission to the login |
+| The **Excel** button warns about the row limit | More than 1,048,575 rows | Export as CSV |

@@ -20,6 +20,7 @@ return [
     // Execução
     'query_timeout' => 120,    // segundos
     'max_rows'      => 10000,  // limite rígido de linhas retornadas por resultado (por página, quando paginado)
+    'csv_separator' => ';',    // separador padrão do CSV: ";", ",", "|" ou "tab" (o usuário pode trocar na tela)
     'export_max_rows' => 0,    // teto de linhas na exportação completa (CSV/JSON/Excel); 0 = sem teto
 
     // Sessão

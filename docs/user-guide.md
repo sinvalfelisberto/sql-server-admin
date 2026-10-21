@@ -1,147 +1,172 @@
-# Manual do usuário
+# User guide
 
-Para quem vai consultar e administrar um SQL Server pelo navegador.
+For people who query and administer a SQL Server from the browser.
 
-## Conectar
+## Connect
 
-1. Abra a aplicação (por exemplo, `http://localhost:8080`).
-2. Preencha:
-   - **Servidor:** `host`, `host\instancia`, `host,porta` ou `host:porta` (ex.: `meuservidor:1433`). `host:porta` é convertido para `host,porta`.
-   - **Usuário** e **Senha:** login de autenticação SQL Server. Autenticação do Windows não é suportada.
-   - **Confiar no certificado do servidor:** marque se o servidor usa certificado autoassinado (o Driver 18 criptografa por padrão).
-3. Clique em **Conectar**.
+1. Open the application (for example, `http://localhost:8080`).
+2. Fill in:
+   - **Server:** `host`, `host\instance`, `host,port` or `host:port` (for example, `myserver:1433`). `host:port` is converted to `host,port`.
+   - **User** and **Password:** SQL Server authentication login. Windows authentication is not supported.
+   - **Trust server certificate:** check it if the server uses a self-signed certificate (Driver 18 encrypts by default).
+3. Click **Connect**.
 
-A aplicação testa as credenciais de verdade e abre no banco padrão do login. Se o administrador restringiu os servidores, outro host retorna **Servidor não permitido.** Credenciais erradas mostram a mensagem do SQL Server e o login demora cerca de meio segundo para responder.
+The application actually tests the credentials and opens on the login's default database. If the administrator restricted the servers, any other host returns **Server not allowed.** Wrong credentials show the SQL Server message, and the login takes about half a second to respond.
 
-A sessão expira após um período sem uso (padrão: 1 hora). Ao expirar, a próxima ação leva de volta ao login. O botão de saída (canto direito da barra superior) encerra a sessão.
+The session expires after a period of inactivity (default: 1 hour). When it expires, the next action takes you back to the login screen. The sign-out button (right side of the top bar) ends the session.
 
-## A tela
+## The screen
 
-| Área | Função |
+| Area | Purpose |
 |---|---|
-| Barra superior | Seletor de banco, **Executar**, limpar editor, **Histórico**, **Favoritos**, salvar `.sql`, **AUTO TOP**, usuário@servidor, tema, sair |
-| Object Explorer (esquerda) | Árvore de bancos e objetos. Arraste a divisória para redimensionar; duplo clique nela restaura a largura |
-| Abas de consulta | Várias consultas ao mesmo tempo; **+** abre uma nova |
-| Editor | Realce de sintaxe e numeração de linhas |
-| Resultados / Mensagens | Grade de dados ou mensagens do servidor |
-| Barra de status | Banco atual, linhas, tempo de execução e versão |
+| Top bar | Database selector, **Run**, clear editor, **History**, **Favorites**, save `.sql`, **AUTO TOP**, **CSV separator**, user@server, theme, sign out |
+| Object Explorer (left) | Tree of databases and objects. Drag the divider to resize it; double-click it to reset the width |
+| Query tabs | Several queries at once; **+** opens a new one |
+| Editor | Syntax highlighting and line numbers |
+| Results / Messages | Data grid or server messages |
+| Status bar | Current database, rows, execution time and version |
 
-As abas, o histórico, os favoritos, o tema, o banco escolhido e o AUTO TOP ficam salvos no navegador (`localStorage`), não no servidor.
+Tabs, history, favorites, theme, the selected database and AUTO TOP are stored in the browser (`localStorage`), not on the server.
 
 ## Object Explorer
 
-- Cada banco traz os grupos **Tabelas**, **Views**, **Procedures** e **Functions**. Os objetos e as colunas carregam sob demanda quando você expande o nó.
-- Bancos de sistema aparecem marcados com `SYS`. Só aparecem os bancos a que o login tem acesso.
-- O campo **Filtrar objetos...** filtra a árvore. Cada grupo mostra no máximo 500 objetos; acima disso aparece `… mais N (refine o filtro)`. O botão de atualizar, no topo, recarrega tudo.
-- Clicar em uma coluna insere o nome dela no editor.
-- Duplo clique em uma tabela executa `SELECT TOP` nela, em uma nova aba.
+- Each database has the groups **Tables**, **Views**, **Procedures** and **Functions**. Objects and columns load on demand when you expand a node.
+- System databases are marked `SYS`. Only databases the login can access are listed.
+- The **Filter objects...** field filters the tree. Each group shows at most 500 objects; beyond that you see `… N more (refine the filter)`. The refresh button at the top reloads everything.
+- Clicking a column inserts its name into the editor.
+- Double-clicking a table runs `SELECT TOP` on it, in a new tab.
 
-### Menu de contexto (botão direito)
+### Context menu (right click)
 
-**Tabelas e views**
+**Tables and views**
 
-| Item | O que faz |
+| Item | What it does |
 |---|---|
-| **SELECT TOP 100** | Abre nova aba e já executa |
-| **SELECT \* (sem TOP)** | Abre nova aba com `SELECT *`. Se a tabela tem mais de 100 mil linhas, pede confirmação antes |
-| **Ver DDL** | Mostra o script `CREATE TABLE` (colunas, identity, computadas, defaults, PK/UNIQUE, índices, chaves estrangeiras e checks). Para views, mostra a definição |
-| **Informações da tabela** | Linhas aproximadas, espaço (reservado, dados, índices, não usado), índices e chaves estrangeiras |
-| **Copiar nome qualificado** / **Copiar nome simples** | Copia `[schema].[nome]` ou só o nome |
-| **Atualizar** | Recarrega só aquele nó |
+| **SELECT TOP 100** | Opens a new tab and runs it |
+| **SELECT \* (no TOP)** | Opens a new tab with `SELECT *`. If the table has more than 100,000 rows, it asks for confirmation first |
+| **View DDL** | Shows the `CREATE TABLE` script (columns, identity, computed columns, defaults, PK/UNIQUE, indexes, foreign keys and checks). For views, it shows the definition |
+| **Table information** | Approximate rows, space (reserved, data, indexes, unused), indexes and foreign keys |
+| **Copy qualified name** / **Copy plain name** | Copies `[schema].[name]` or just the name |
+| **Refresh** | Reloads only that node |
 
-**Bancos:** **Nova consulta** (abre aba com `USE [banco]`), **Ver DDL (script do banco)** (collation e opções ativas; os arquivos MDF/LDF não entram) e **Atualizar**.
+**Databases:** **New query** (opens a tab with `USE [database]`), **View DDL (database script)** (collation and active options; the MDF/LDF files are not included) and **Refresh**.
 
-**Procedures e functions:** **Ver DDL** (definição do objeto), copiar nome e **Atualizar**. Se a definição estiver indisponível, o script avisa: o objeto não existe, está criptografado ou falta a permissão `VIEW DEFINITION`.
+**Procedures and functions:** **View DDL** (the object definition), copy name and **Refresh**. If the definition is unavailable, the script says so: the object does not exist, is encrypted, or you lack the `VIEW DEFINITION` permission.
 
-## Escrever e executar consultas
+## Write and run queries
 
-- **Executar:** botão **Executar**, `F5` ou `Ctrl+Enter` (`Cmd+Enter` no macOS).
-- Com texto selecionado, só a seleção é executada; sem seleção, o script inteiro.
-- `Tab` insere dois espaços no editor (não muda o foco).
-- **GO** em linha isolada separa os lotes, como no SSMS (aceita `GO 5` e comentário depois). Cada lote roda em sequência. O contador do `GO` é ignorado: `GO 5` não repete o lote.
-- Vários result sets aparecem como botões (chips) acima da grade.
-- Se um lote falha, os lotes anteriores (separados por `GO`) e os result sets já lidos são mantidos, e a mensagem de erro aparece na aba **Mensagens**. Erros de compilação derrubam o lote inteiro.
-- O banco usado na execução é o do seletor da barra superior.
+- **Run:** the **Run** button, `F5` or `Ctrl+Enter` (`Cmd+Enter` on macOS).
+- With text selected, only the selection runs; with no selection, the whole script runs.
+- `Tab` inserts two spaces in the editor (it does not move focus).
+- **GO** on its own line separates batches, as in SSMS (it accepts `GO 5` and a trailing comment). Each batch runs in sequence. The `GO` count is ignored: `GO 5` does not repeat the batch.
+- Multiple result sets appear as buttons (chips) above the grid.
+- If a batch fails, earlier batches (separated by `GO`) and result sets already read are kept, and the error message appears in the **Messages** tab. Compilation errors take down the whole batch.
+- The database used for execution is the one in the top bar selector.
 
 ### AUTO TOP
 
-Com **AUTO TOP** marcado, o resultado é limitado ao número de linhas informado ao lado (padrão: 1000) **no total**, somando todas as páginas. Se o resultado foi cortado, a aba **Mensagens** avisa. **SELECT \* (sem TOP)** ignora o AUTO TOP.
+With **AUTO TOP** checked, the result is limited to the number of rows entered next to it (default: 1000) **in total**, across all pages. If the result was cut, the **Messages** tab says so. **SELECT \* (no TOP)** ignores AUTO TOP.
 
-### Paginação no servidor
+### Server-side pagination
 
-Quando o que você executa é **um único `SELECT`** (pode ter `WHERE`, `JOIN`, `GROUP BY`, `ORDER BY` e CTE), o servidor devolve só uma página por vez (200 linhas por padrão, ajustável em **Exibir**) e a grade mostra **‹ Anterior** / **Próxima ›** e `Linhas 201 a 400 (há mais)`. Assim o servidor e o navegador nunca carregam o resultado inteiro de uma vez.
+When what you run is **a single `SELECT`** (it may have `WHERE`, `JOIN`, `GROUP BY`, `ORDER BY` and CTEs), the server returns only one page at a time (200 rows by default, adjustable in **Show**), and the grid shows **‹ Previous** / **Next ›** and `Rows 201 to 400 (more available)`. This way neither the server nor the browser ever loads the whole result at once.
 
-- **Cada página reexecuta a consulta** (com `OFFSET … FETCH`). Em tabelas grandes, páginas mais ao fim custam mais.
-- **Sem `ORDER BY`, a ordem entre páginas não é garantida** pelo SQL Server: linhas podem repetir ou faltar se os dados mudarem. Para paginar de forma estável, use `ORDER BY` com uma coluna única.
-- **Ordenar pelo cabeçalho e Filtrar valem só para a página atual.** Para ordenar tudo, use `ORDER BY` na consulta.
-- Vale o `SELECT` exato que você executou, e não um recorte do resultado. Se houver texto selecionado, só ele é executado.
-- **Não é paginado** (volta o resultado inteiro, limitado por AUTO TOP e `max_rows`, como antes): scripts com `GO` ou vários comandos, `SELECT … INTO`, `SELECT TOP …` na instrução principal, `FOR XML/JSON`, `OPTION (…)`, atribuição a variável, `UNION`/`DISTINCT` sem `ORDER BY`, `EXEC` e qualquer comando que não seja `SELECT`. Se o servidor recusar a versão paginada, a consulta roda normalmente.
+- **Each page re-runs the query** (with `OFFSET … FETCH`). On large tables, pages further along cost more.
+- **Without `ORDER BY`, the order between pages is not guaranteed** by SQL Server: rows can repeat or go missing if the data changes. For stable pagination, use `ORDER BY` on a unique column.
+- **Sorting by header and Filter apply only to the current page.** To sort everything, use `ORDER BY` in the query.
+- What counts is the exact `SELECT` you ran, not a slice of the result. If text is selected, only that text runs.
+- **Not paginated** (the whole result comes back, limited by AUTO TOP and `max_rows`, as before): scripts with `GO` or several statements, `SELECT … INTO`, `SELECT TOP …` in the main statement, `FOR XML/JSON`, `OPTION (…)`, assignment to a variable, `UNION`/`DISTINCT` without `ORDER BY`, `EXEC` and any statement that is not a `SELECT`. If the server rejects the paginated version, the query simply runs normally.
 
-### Mensagens e `PRINT`
+### Messages and `PRINT`
 
-A aba **Mensagens** mostra o texto de `PRINT`, avisos do servidor, `(N linha(s) afetada(s))`, o erro (com número `Msg`), o tempo total e a contagem de linhas de cada resultado. Quando a execução não devolve nenhuma grade (por exemplo, um script só com `PRINT`), essa aba abre sozinha.
+The **Messages** tab shows the `PRINT` text, server warnings, `(N row(s) affected)`, the error (with the `Msg` number), the total time and the row count of each result. When the execution returns no grid at all (for example, a script that only has `PRINT`), this tab opens by itself.
 
-> Os `PRINT` aparecem juntos na aba, na ordem em que o servidor os enviou, sem posição relativa às grades.
+> `PRINT` output appears together in the tab, in the order the server sent it, with no position relative to the grids.
 
-### Histórico e favoritos
+### History and favorites
 
-- **Histórico:** as últimas 50 consultas executadas (sem repetições). Clique para recarregar no editor; há **Limpar histórico**.
-- **Favoritos:** **★ Adicionar consulta atual aos favoritos** pede um nome; clique no favorito para carregá-lo no editor e use o botão de remoção do item para excluir.
-- **Salvar:** baixa o editor como `.sql` (o nome vem do título da aba).
+- **History:** the last 50 queries run (no repeats). Click one to reload it into the editor; there is also **Clear history**.
+- **Favorites:** **★ Add current query to favorites** asks for a name; click a favorite to load it into the editor and use the item's remove button to delete it.
+- **Save:** downloads the editor as `.sql` (the name comes from the tab title).
 
-## Grade de resultados
+## Results grid
 
-- **Ordenar:** clique no cabeçalho da coluna: 1º clique ascendente, 2º descendente, 3º remove a ordenação. Trocar de result set limpa a ordenação.
-- **Filtrar:** o campo **Filtrar** mostra só as linhas em que qualquer coluna contém o texto (sem diferenciar maiúsculas); atua sobre os dados já carregados.
-- **Exibir:** linhas por página (10 a 1000); o padrão é 200. Em resultado paginado no servidor, mudar o valor recarrega a primeira página. Nos demais, a paginação é só de exibição.
-- Células `NULL` aparecem como **NULL** em destaque; colunas numéricas ficam alinhadas à direita; colunas binárias aparecem como `0xHEX`.
-- O rodapé da grade mostra o intervalo exibido, o total e a navegação **‹ Anterior** / **Próxima ›**.
-- O tipo SQL da coluna aparece como dica ao passar o mouse no cabeçalho.
+- **Sort:** click the column header: 1st click ascending, 2nd descending, 3rd removes the sort. Switching result sets clears the sort.
+- **Filter:** the **Filter** field shows only the rows where any column contains the text (case-insensitive); it works on the data already loaded.
+- **Show:** rows per page (10 to 1000); the default is 200. On a result paginated on the server, changing the value reloads the first page. On the others, pagination is display-only.
+- `NULL` cells appear as a highlighted **NULL**; numeric columns are right-aligned; exact decimals use the format described in [Decimal number format](#decimal-number-format); binary columns appear as `0xHEX`.
+- The grid footer shows the range displayed, the total and the **‹ Previous** / **Next ›** navigation.
+- The SQL type of the column appears as a tooltip when you hover over the header.
 
-## Exportar
+## Export
 
-Os botões da grade exportam o resultado da consulta:
+The grid buttons export the result of the query:
 
-- **Resultado paginado no servidor:** o arquivo traz o **resultado completo da consulta**, não só a página visível nem o recorte do AUTO TOP. O servidor executa a consulta de novo e grava as linhas em fluxo. A ordenação e o filtro da grade **não** entram: vale a ordem da consulta (use `ORDER BY`). O download só começa quando o servidor termina de abrir a consulta; consultas grandes podem demorar e não têm teto de linhas, a menos que o administrador defina `export_max_rows`.
-- **Demais resultados (já carregados inteiros):** o arquivo traz **todas as linhas carregadas**, com a ordenação e o filtro da grade aplicados.
-- **Copiar** copia só a página atual quando o resultado é paginado.
+- **Result paginated on the server:** the file contains the **complete query result**, not just the visible page or the AUTO TOP slice. The server runs the query again and streams the rows. The grid's sorting and filter are **not** applied: the order of the query is used (use `ORDER BY`). The download only starts when the server finishes opening the query; large queries can take a while and have no row cap unless the administrator sets `export_max_rows`.
+- **Other results (already fully loaded):** the file contains **all loaded rows**, with the grid's sorting and filter applied.
+- **Copy** copies only the current page when the result is paginated.
 
-| Botão | Resultado |
+| Button | Result |
 |---|---|
-| **Copiar** | Copia para a área de transferência, com cabeçalho, separado por tabulação (cola direto em planilhas); quebras de linha dentro das células viram espaço |
-| **CSV** | Separador `;`, UTF-8 com BOM (abre direto no Excel em português) |
-| **Excel** | Arquivo `.xlsx` real: cabeçalho em negrito, primeira linha congelada, filtro automático e largura de coluna ajustada |
-| **JSON** | Lista de objetos; colunas com nomes repetidos recebem sufixo para não se sobrescreverem |
+| **Copy** | Copies to the clipboard, with a header, tab-separated (pastes straight into spreadsheets); line breaks inside cells become spaces |
+| **CSV** | UTF-8 with BOM, using the separator chosen in **CSV separator** (default `;`; see below) |
+| **Excel** | A real `.xlsx` file: bold header, frozen first row, auto filter and adjusted column widths |
+| **JSON** | A list of objects; columns with repeated names get a suffix so they do not overwrite each other |
 
-### Nome do arquivo
+### CSV separator
 
-O nome segue o padrão `schema.tabela_ddMMyyyy.extensão`, por exemplo `Sales.Orders_21102026.xlsx`.
+The **CSV separator** selector, in the top bar next to **AUTO TOP**, sets the delimiter of the file: `;` (semicolon), `,` (comma), **Tab** or `|` (pipe). Your choice is remembered in the browser. The initial value comes from the administrator's `csv_separator` setting (default `;`).
 
-- A tabela é a do **primeiro `FROM`** da consulta executada. Para `db.schema.tabela`, só schema e tabela entram.
-- Sem schema na consulta (`FROM Clientes`), o nome usa `dbo`. Isso pode não corresponder ao schema real se o seu usuário tiver outro schema padrão.
-- Sem `FROM` (ex.: `SELECT 1`), o nome é `resultado_ddMMyyyy.extensão`.
-- Com `JOIN` ou subconsulta, vale o primeiro `FROM`.
-- Caracteres inválidos em nome de arquivo viram `_`.
+- Excel in the English (US) locale expects commas: pick `,` there. A `;` file can open in a single column.
+- Cells containing the chosen separator, quotes or line breaks are wrapped in quotes.
+- The choice applies to both kinds of CSV export (from the grid and from the server for paginated results).
 
-### Particularidades do Excel
+### Decimal number format
 
-- Colunas numéricas viram números. Valores com mais de 15 dígitos ficam como texto, para não perder precisão.
-- Textos acima de 32.767 caracteres são cortados (limite do Excel).
-- Acima de 1.048.575 linhas o botão avisa para usar CSV. Em resultado paginado, o navegador recebe o resultado completo para montar o arquivo, então resultados muito grandes consomem memória do navegador; prefira CSV nesses casos.
-- Nulos viram células vazias.
+In the results grid and in every export (**Copy**, **CSV**, **Excel** and **JSON**), exact decimal columns (`decimal`, `numeric`, `money` and `smallmoney`) are shown in the SQL standard: a dot as the decimal separator and **at least two decimal places**. The data itself is not changed; sorting uses the real values.
 
-## O que ainda não existe
-
-O PRD prevê, mas **não estão implementados**: exportação como script T-SQL com `INSERT INTO`, importação de CSV, modo somente leitura e os recursos de administração e monitoramento (FR-06). A aplicação executa SQL arbitrário com as permissões do login informado.
-
-## Atalhos
-
-| Atalho | Ação |
+| Raw value from SQL Server | Grid and export |
 |---|---|
-| `F5` ou `Ctrl+Enter` | Executar |
-| Duplo clique em tabela | `SELECT TOP` em nova aba |
-| Clique em coluna | Insere o nome no editor |
-| Botão direito | Menu de contexto do Object Explorer |
-| `Esc` | Fecha o menu de contexto |
-| Setas ↑ ↓ | Navegam no menu de contexto |
-| Setas ← → na divisória | Redimensionam o Object Explorer; `Home` restaura |
+| `30000.0000` | `30000.00` |
+| `.0000` | `0.00` |
+| `-.5000` | `-0.50` |
+| `0.5` | `0.50` |
+| `12.3456` | `12.3456` |
+
+- Trailing zeros beyond the second decimal place are dropped, but **significant digits are never cut**: `12.3456` and `0.0125` keep all their digits.
+- Values with no fractional part (for example `numeric(10,0)`), `float`/`real` and integer columns are left untouched.
+- In Excel, cells with two decimal places are numbers with the `0.00` format.
+
+### File name
+
+The name follows the pattern `schema.table_ddMMyyyy.extension`, for example `Sales.Orders_21102026.xlsx`.
+
+- The table is the one in the **first `FROM`** of the query that was run. For `db.schema.table`, only the schema and table are used.
+- With no schema in the query (`FROM Customers`), the name uses `dbo`. This may not match the real schema if your user has a different default schema.
+- With no `FROM` (for example, `SELECT 1`), the name is `result_ddMMyyyy.extension`.
+- With a `JOIN` or subquery, the first `FROM` wins.
+- Characters that are invalid in a file name become `_`.
+
+### Excel specifics
+
+- Numeric columns become numbers. Values with more than 15 digits stay as text, so no precision is lost.
+- Text longer than 32,767 characters is cut off (Excel's limit).
+- Above 1,048,575 rows the button warns you to use CSV. On a paginated result, the browser receives the complete result to build the file, so very large results consume browser memory; prefer CSV in those cases.
+- Nulls become empty cells.
+- The worksheet is named **Result**.
+
+## Not available yet
+
+The PRD describes, but **does not implement**: export as a T-SQL script with `INSERT INTO`, CSV import, read-only mode and the administration and monitoring features (FR-06). The application runs arbitrary SQL with the permissions of the login provided.
+
+## Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `F5` or `Ctrl+Enter` | Run |
+| Double-click a table | `SELECT TOP` in a new tab |
+| Click a column | Inserts its name into the editor |
+| Right click | Object Explorer context menu |
+| `Esc` | Closes the context menu |
+| Arrows ↑ ↓ | Move through the context menu |
+| Arrows ← → on the divider | Resize the Object Explorer; `Home` resets |

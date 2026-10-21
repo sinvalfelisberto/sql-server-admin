@@ -1,123 +1,126 @@
 # SQL Web Manager
 
-Cliente web para SQL Server (estilo SSMS) em PHP, HTML, CSS e JavaScript puros, sem dependências de front-end nem de Composer.
+A web client for SQL Server (SSMS-style) built with plain PHP, HTML, CSS and JavaScript, with no front-end dependencies and no Composer.
 
-## Documentação
+## Documentation
 
-A documentação completa está em [`docs/`](docs/README.md): [manual do usuário](docs/usuario.md), [configuração e operação](docs/configuracao.md), [segurança](docs/seguranca.md), [referência da API](docs/api.md), [arquitetura](docs/arquitetura.md), [guia de desenvolvimento](docs/desenvolvimento.md) e [decisões (ADRs)](docs/adr/README.md). Histórico em [CHANGELOG.md](CHANGELOG.md).
+The full documentation is in [`docs/`](docs/README.md): [user manual](docs/user-guide.md), [configuration and operations](docs/configuration.md), [security](docs/security.md), [API reference](docs/api.md), [architecture](docs/architecture.md), [development guide](docs/development.md) and [decisions (ADRs)](docs/adr/README.md). History is in [CHANGELOG.md](CHANGELOG.md).
 
-## Recursos
+## Features
 
-- Login com autenticação SQL Server (servidor, usuário e senha)
-- Object Explorer com todas as bases do servidor (bancos de sistema marcados com `SYS`), cada uma com Tabelas, Views, Procedures e Functions; objetos e colunas carregam sob demanda e há filtro
-- Menu de contexto (botão direito) nos bancos, tabelas, views, procedures e funções:
-  - **Tabelas e views:** `SELECT TOP 100` (nova aba, já executa), `SELECT *` sem TOP (confirma antes se a tabela tem mais de 100 mil linhas), **Ver DDL**, **Informações da tabela** (linhas aproximadas, espaço, índices e chaves estrangeiras), copiar nome (qualificado ou simples) e **Atualizar** só aquele nó
-  - **Bancos:** Nova consulta (`USE [banco]`), Ver DDL do banco (collation e opções) e Atualizar
-  - **Procedures e functions:** Ver DDL (definição), copiar nome e Atualizar
-- Editor com realce de sintaxe, numeração de linhas e várias abas (salvas no navegador)
-- Executa o texto selecionado ou todo o script; suporta `GO` e vários result sets
-- AUTO TOP, histórico, favoritos, salvar `.sql`, tema claro/escuro
-- Grid com ordenação, filtro, paginação e exportação (copiar, CSV, Excel, JSON)
+- Login with SQL Server authentication (server, user and password)
+- Object Explorer with every database on the server (system databases are marked `SYS`), each with Tables, Views, Procedures and Functions; objects and columns load on demand and can be filtered
+- Context menu (right click) on databases, tables, views, procedures and functions:
+  - **Tables and views:** `SELECT TOP 100` (opens a new tab and runs it), `SELECT *` without TOP (asks for confirmation first if the table has more than 100,000 rows), **View DDL**, **Table information** (approximate rows, space, indexes and foreign keys), copy name (qualified or plain) and **Refresh** for that node only
+  - **Databases:** new query (`USE [database]`), database DDL (collation and options) and refresh
+  - **Procedures and functions:** view DDL (definition), copy name and refresh
+- Editor with syntax highlighting, line numbers and multiple tabs (saved in the browser)
+- Runs the selected text or the whole script; supports `GO` and multiple result sets
+- AUTO TOP, history, favorites, save as `.sql`, light/dark theme
+- Grid with sorting, filtering, pagination and export (copy, CSV, Excel, JSON); the CSV separator (`;`, `,`, tab or `|`) is selectable in the top bar, next to AUTO TOP
+- Server-side pagination (200 rows per page) for a single `SELECT`; export returns the complete query result, named `schema.table_ddMMyyyy.ext`
+- `PRINT` messages in the **Messages** tab
 
-Atalhos: `Ctrl+Enter` ou `F5` executam; duplo clique em uma tabela faz `SELECT TOP`; clique em uma coluna insere o nome no editor.
+Shortcuts: `Ctrl+Enter` or `F5` run the query; double-clicking a table runs `SELECT TOP`; clicking a column inserts its name into the editor.
 
-## Requisitos
+## Requirements
 
-- PHP 8.2+ com as extensões `pdo_sqlsrv` e `sqlsrv`
+- PHP 8.2+ with the `pdo_sqlsrv` and `sqlsrv` extensions
 - Microsoft ODBC Driver 17/18 for SQL Server
 
-## Executando
+## Running
 
-### Docker (recomendado)
+### Docker (recommended)
 
 ```bash
 docker compose up -d
 ```
 
-Abre em http://localhost:8080 (troque a porta com `SQLWM_PORT`). A imagem traz PHP 8.3, Apache, ODBC Driver 18 e `pdo_sqlsrv`; um build sem cache leva cerca de 1,5 minuto.
+Opens at http://localhost:8080 (change the port with `SQLWM_PORT`). The image ships PHP 8.3, Apache, ODBC Driver 18 and `pdo_sqlsrv`; an uncached build takes about 1.5 minutes.
 
-Para testar sem ter um SQL Server à mão, suba também o de demonstração e use servidor `mssql`, usuário `sa`:
+To try it without a SQL Server at hand, also start the demo one and use server `mssql`, user `sa`:
 
 ```bash
 docker compose --profile demo up -d
 ```
 
-Antes, defina `MSSQL_SA_PASSWORD` (senha forte, sua) no `.env`, que não é versionado: o compose não traz senha padrão e o SQL Server não sobe sem ela. A porta do SQL Server de demonstração não é publicada. O Driver 18 criptografa por padrão; com certificado autoassinado, marque "Confiar no certificado do servidor" no login.
+First, set `MSSQL_SA_PASSWORD` (a strong password of your own) in the `.env` file, which is not versioned: the compose file ships no default password and SQL Server will not start without one. The demo SQL Server port is not published. Driver 18 encrypts connections by default; with a self-signed certificate, check "Trust server certificate" on the login screen.
 
-### PHP local
+### Local PHP
 
 ```bash
 php -S localhost:8080 -t public
 ```
 
-Em Apache/Nginx, aponte o document root para `public/` (há um `.htaccess` com o rewrite para o front controller).
+On Apache/Nginx, point the document root at `public/` (a `.htaccess` file handles the rewrite to the front controller).
 
-### IIS, com o projeto inteiro numa pasta (sem apontar para `public/`)
+### IIS, with the whole project in one folder (not pointing at `public/`)
 
-Copie o projeto todo para a pasta do site e use o `index.php` da raiz. Cole o conteúdo de `deploy/iis-rewrite.xml` dentro de `<system.webServer>` do `web.config` (requer o módulo URL Rewrite): `assets/` sai de `public/assets/` e todo o resto vai para o `index.php`, então `app/`, `config/` e `tests/` não ficam expostos. O PHP do site precisa ser 8.2+ com `pdo_sqlsrv` e a pasta de sessões (`session.save_path`) gravável.
+Copy the whole project into the site folder and use the `index.php` in the project root. Paste the contents of `deploy/iis-rewrite.xml` inside `<system.webServer>` in `web.config` (requires the URL Rewrite module): `assets/` is served from `public/assets/` and everything else goes to `index.php`, so `app/`, `config/` and `tests/` are not exposed. The site's PHP must be 8.2+ with `pdo_sqlsrv`, and the session folder (`session.save_path`) must be writable.
 
-## Testes
+## Tests
 
 ```bash
 php tests/run.php
+node tests/xlsx.test.js
 ```
 
-Cobrem as funções puras e os objetos de valor; não precisam de banco.
+They cover the pure functions, the value objects and the `.xlsx` generator; neither needs a database.
 
-## Arquitetura
+## Architecture
 
-MVC com um front controller. O código combina três estilos, cada um onde rende mais:
+MVC with a front controller. The code combines three styles, each where it pays off most:
 
-| Estilo | Onde | Exemplos |
+| Style | Where | Examples |
 |---|---|---|
-| **OO** | Camadas com estado ou efeitos | `Request`/`Response` (imutáveis), `Session`, `Router`, `Container`, `CatalogRepository`, `QueryExecutor`, controllers |
-| **Funcional** | Regras de domínio e composição | `app/Models/functions.php` e `ddl.php` (funções puras, incluindo a geração de DDL), `Result` (Either), `pipe`, `take`, middlewares em `pipeline` |
-| **MVC** | Fluxo da requisição | Router → middlewares → Controller → Model → View |
+| **OO** | Layers with state or side effects | `Request`/`Response` (immutable), `Session`, `Router`, `Container`, `CatalogRepository`, `QueryExecutor`, controllers |
+| **Functional** | Domain rules and composition | `app/Models/functions.php` and `ddl.php` (pure functions, including DDL generation), `Result` (Either), `pipe`, `take`, middleware via `pipeline` |
+| **MVC** | Request flow | Router → middleware → Controller → Model → View |
 
 ```
-public/            document root: index.php (front controller) e assets/
+public/            document root: index.php (front controller) and assets/
 app/
   Core/            Application (composition root), Router, Container, View, Config
   Http/            Request, Response, Session, Middleware
-  Controllers/     Auth, Editor, Explorer (catálogo), Query (execução) — finos, só orquestram
+  Controllers/     Auth, Editor, Explorer (catalog), Query (execution) — thin, orchestration only
   Models/          Connection, ConnectionFactory, CatalogRepository, QueryExecutor, QueryResult
-                   functions.php: regras puras (split_batches, normalize_server, type_label...)
-  Views/           layout, login, editor (templates PHP; saída sempre escapada com $e())
-  Support/         Result e funções genéricas (pipe, partial, take, pipeline, e)
-  routes.php       rotas declaradas como dados
-config/            config.php (padrões) e config.local.php (seu, não versionado)
+                   functions.php: pure rules (split_batches, normalize_server, type_label...)
+  Views/           layout, login, editor (PHP templates; output always escaped with $e())
+  Support/         Result and generic functions (pipe, partial, take, pipeline, e)
+  routes.php       routes declared as data
+config/            config.php (defaults) and config.local.php (yours, not versioned)
 tests/             run.php
-Dockerfile, docker-compose.yml, docker/    empacotamento (Apache + ODBC 18 + pdo_sqlsrv)
+Dockerfile, docker-compose.yml, docker/    packaging (Apache + ODBC 18 + pdo_sqlsrv)
 ```
 
-Decisões:
-- **Imutabilidade:** `Request`, `Response`, `Connection` e `QueryResult` são `readonly`; "alterar" devolve uma nova instância.
-- **Erros esperados são valores, não exceções:** a validação do login devolve `Result`, encadeado com `flatMap`. Exceções ficam para falhas inesperadas (tratadas em `Application`, sem vazar detalhes).
-- **Núcleo puro, borda impura:** só `ConnectionFactory`, `CatalogRepository`, `QueryExecutor` e `Session` fazem I/O. O resto é determinístico e testável.
-- **Sem autowiring mágico:** as dependências são ligadas explicitamente em `Application::container()`.
+Decisions:
+- **Immutability:** `Request`, `Response`, `Connection` and `QueryResult` are `readonly`; "changing" one returns a new instance.
+- **Expected errors are values, not exceptions:** login validation returns a `Result`, chained with `flatMap`. Exceptions are reserved for unexpected failures (handled in `Application`, without leaking details).
+- **Pure core, impure edge:** only `ConnectionFactory`, `CatalogRepository`, `QueryExecutor` and `Session` do I/O. Everything else is deterministic and testable.
+- **No magic autowiring:** dependencies are wired explicitly in `Application::container()`.
 
-## Configuração
+## Configuration
 
-Precedência: `config/config.php` < `config/config.local.php` < variáveis de ambiente. Para sobrescrever em arquivo, crie `config/config.local.php`:
+Precedence: `config/config.php` < `config/config.local.php` < environment variables. To override values in a file, create `config/config.local.php`:
 
 ```php
 <?php
 return [
-    'default_server'  => 'meuservidor:1433',
-    'allowed_servers' => ['meuservidor:1433'],
+    'default_server'  => 'myserver:1433',
+    'allowed_servers' => ['myserver:1433'],
     'max_rows'        => 5000,
 ];
 ```
 
-Variáveis de ambiente (úteis no Docker; valores vazios são ignorados — veja `.env.example`): `SQLWM_DEFAULT_SERVER`, `SQLWM_ALLOWED_SERVERS` (lista separada por vírgula), `SQLWM_ENCRYPT`, `SQLWM_TRUST_SERVER_CERTIFICATE`, `SQLWM_MAX_ROWS`, `SQLWM_QUERY_TIMEOUT`, `SQLWM_SESSION_TIMEOUT`.
+Environment variables (handy with Docker; empty values are ignored — see `.env.example`): `SQLWM_DEFAULT_SERVER`, `SQLWM_ALLOWED_SERVERS` (comma-separated list), `SQLWM_ENCRYPT`, `SQLWM_TRUST_SERVER_CERTIFICATE`, `SQLWM_MAX_ROWS`, `SQLWM_EXPORT_MAX_ROWS`, `SQLWM_CSV_SEPARATOR`, `SQLWM_QUERY_TIMEOUT`, `SQLWM_SESSION_TIMEOUT`.
 
-## Segurança
+## Security
 
-Esta ferramenta executa SQL arbitrário com as credenciais do usuário logado.
+This tool runs arbitrary SQL with the credentials of the logged-in user.
 
-- Use HTTPS em qualquer ambiente fora do localhost.
-- Preencha `allowed_servers` para impedir o uso da aplicação como proxy para outros hosts.
-- Dê ao login do SQL Server apenas as permissões necessárias; a aplicação não impõe modo somente leitura.
-- A senha fica na sessão PHP, no servidor, e nunca é enviada ao navegador. O cookie é `HttpOnly` e `SameSite=Strict`, e todo POST exige token CSRF.
-- Só `public/` fica exposto: código, configuração e templates ficam fora do document root.
-- A sessão expira após `session_timeout` segundos sem uso.
+- Use HTTPS in any environment other than localhost.
+- Fill in `allowed_servers` to stop the application from being used as a proxy to other hosts.
+- Give the SQL Server login only the permissions it needs; the application does not enforce a read-only mode.
+- The password lives in the PHP session, on the server, and is never sent to the browser. The cookie is `HttpOnly` and `SameSite=Strict`, and every POST requires a CSRF token.
+- Only `public/` is exposed: code, configuration and templates stay outside the document root.
+- The session expires after `session_timeout` seconds of inactivity.

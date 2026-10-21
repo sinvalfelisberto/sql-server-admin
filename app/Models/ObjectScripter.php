@@ -57,7 +57,7 @@ final class ObjectScripter
         $stmt->execute([$database]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $row === false ? '-- Banco de dados não encontrado.' . "\n" : build_create_database($row);
+        return $row === false ? '-- Database not found.' . "\n" : build_create_database($row);
     }
 
     private function tableScript(PDO $pdo, string $schema, string $name): string
@@ -66,7 +66,7 @@ final class ObjectScripter
 
         $columns = $this->rows($pdo, self::SQL_COLUMNS, [$qualified]);
         if ($columns === []) {
-            return "-- Tabela $qualified não encontrada.\n";
+            return "-- Table $qualified not found.\n";
         }
         $checks = $this->rows($pdo, self::SQL_CHECKS, [$qualified]);
         $details = $this->catalog->tableDetails($pdo, $schema, $name);
@@ -82,7 +82,7 @@ final class ObjectScripter
 
         return is_string($definition) && $definition !== ''
             ? rtrim($definition) . "\nGO\n"
-            : "-- Definição indisponível (objeto inexistente, criptografado ou sem permissão VIEW DEFINITION).\n";
+            : "-- Definition unavailable (object does not exist, is encrypted, or you lack VIEW DEFINITION permission).\n";
     }
 
     private function rows(PDO $pdo, string $sql, array $params): array

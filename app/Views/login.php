@@ -5,7 +5,7 @@
 ?>
 <form class="login-card" method="post" action="<?= $e($url('login')) ?>" autocomplete="off">
     <h1><?= $e($appName) ?> <small>v<?= $e($version) ?></small></h1>
-    <p class="muted">Conecte-se a uma instância do SQL Server</p>
+    <p class="muted">Connect to a SQL Server instance</p>
 
     <?php if ($error !== ''): ?>
         <div class="alert" role="alert"><?= $e($error) ?></div>
@@ -13,19 +13,19 @@
 
     <input type="hidden" name="csrf" value="<?= $e($csrf) ?>">
 
-    <label>Servidor
-        <input name="server" value="<?= $e($server) ?>" placeholder="host, host\instancia ou host:porta" required autofocus>
+    <label>Server
+        <input name="server" value="<?= $e($server) ?>" placeholder="host, host\instance or host:port" required autofocus>
     </label>
-    <label>Usuário
+    <label>User
         <input name="user" value="<?= $e($user) ?>" required>
     </label>
-    <label>Senha
+    <label>Password
         <input name="pass" type="password">
     </label>
     <label class="check">
         <input type="checkbox" name="trust" <?= $trust ? 'checked' : '' ?>>
-        Confiar no certificado do servidor
+        Trust server certificate
     </label>
 
-    <button class="btn primary" type="submit">Conectar</button>
+    <button class="btn primary" type="submit">Connect</button>
 </form>
