@@ -1,0 +1,42 @@
+name: sql-web-manager
+
+services:
+  app:
+    build: .
+    image: sql-web-manager:latest
+    ports:
+      - "${SQLWM_PORT:-8080}:80"
+    environment:
+      # Valores vazios são ignorados e valem os padrões de config/config.php.
+      SQLWM_DEFAULT_SERVER: ${SQLWM_DEFAULT_SERVER:-}
+      SQLWM_ALLOWED_SERVERS: ${SQLWM_ALLOWED_SERVERS:-}
+      SQLWM_ENCRYPT: ${SQLWM_ENCRYPT:-}
+      SQLWM_TRUST_SERVER_CERTIFICATE: ${SQLWM_TRUST_SERVER_CERTIFICATE:-}
+      SQLWM_MAX_ROWS: ${SQLWM_MAX_ROWS:-}
+      SQLWM_QUERY_TIMEOUT: ${SQLWM_QUERY_TIMEOUT:-}
+      SQLWM_SESSION_TIMEOUT: ${SQLWM_SESSION_TIMEOUT:-}
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # SQL Server de demonstração: docker compose --profile demo up -d
+  # Na tela de login use servidor "mssql", usuário "sa" e a senha abaixo.
+  # Só para testes: a porta não é publicada, mas troque a senha em qualquer outro uso.
+  mssql:
+    profiles: ["demo"]
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-}
+    volumes:
+      - mssql-data:/var/opt/mssql
+    restart: unless-stopped
+
+volumes:
+  mssql-data:

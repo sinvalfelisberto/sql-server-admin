@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+tests
+docker-compose.yml
+Dockerfile
+.dockerignore
+README.md
+PRD.md
+config/config.local.php
