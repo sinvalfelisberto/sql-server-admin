@@ -23,7 +23,7 @@ final class EditorController
             'bodyClass'  => '',
             'csrf'       => $this->session->csrfToken(),
             'connection' => $this->session->connection(),
-            'scripts'    => ['assets/js/app.js'],
+            'scripts'    => ['assets/js/xlsx.js', 'assets/js/app.js'],
         ]));
     }
 }

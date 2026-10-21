@@ -389,7 +389,7 @@
         const set = currentSet(m);
         if (!set) { toast('Não há resultados para exportar.'); return null; }
         const rows = (m.view ?? computeView(m)).map(({ r }) => r);
-        return { columns: set.columns.map((c) => c.name), rows };
+        return { columns: set.columns.map((c) => c.name), types: set.columns.map((c) => c.type), rows };
     }
 
     function toCsv({ columns, rows }) {
@@ -399,14 +399,6 @@
             return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
         };
         return '﻿' + [columns.map(cell), ...rows.map((r) => r.map(cell))].map((l) => l.join(';')).join('\r\n');
-    }
-
-    function toHtmlTable({ columns, rows }) {
-        const td = (v) => `<td>${v === null ? '' : esc(v)}</td>`;
-        return '<html><head><meta charset="utf-8"></head><body><table border="1"><tr>'
-            + columns.map((c) => `<th>${esc(c)}</th>`).join('') + '</tr>'
-            + rows.map((r) => '<tr>' + r.map(td).join('') + '</tr>').join('')
-            + '</table></body></html>';
     }
 
     function toJson({ columns, rows }) {
@@ -1079,7 +1071,10 @@
             toast(ok ? `${fmt(d.rows.length)} linha(s) copiada(s).` : 'Não foi possível copiar para a área de transferência.');
         });
         $('btn-csv').addEventListener('click', () => { const d = exportRows(); if (d) download(`resultado-${stamp()}.csv`, 'text/csv;charset=utf-8', toCsv(d)); });
-        $('btn-xls').addEventListener('click', () => { const d = exportRows(); if (d) download(`resultado-${stamp()}.xls`, 'application/vnd.ms-excel', toHtmlTable(d)); });
+        $('btn-xls').addEventListener('click', () => {
+            const d = exportRows();
+            if (d) download(`resultado-${stamp()}.xlsx`, XlsxWriter.MIME, XlsxWriter.build(d.columns, d.types, d.rows));
+        });
         $('btn-json').addEventListener('click', () => { const d = exportRows(); if (d) download(`resultado-${stamp()}.json`, 'application/json', toJson(d)); });
     }
 
