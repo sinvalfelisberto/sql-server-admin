@@ -11,9 +11,10 @@ The full documentation is in [`docs/`](docs/README.md): [user manual](docs/user-
 - Login with SQL Server authentication (server, user and password)
 - Object Explorer with every database on the server (system databases are marked `SYS`), each with Tables, Views, Procedures and Functions; objects and columns load on demand and can be filtered
 - Context menu (right click) on databases, tables, views, procedures and functions:
-  - **Tables and views:** `SELECT TOP 100` (opens a new tab and runs it), `SELECT *` without TOP (asks for confirmation first if the table has more than 100,000 rows), **View DDL**, **Table information** (approximate rows, space, indexes and foreign keys), copy name (qualified or plain) and **Refresh** for that node only
-  - **Databases:** new query (`USE [database]`), database DDL (collation and options) and refresh
+  - **Tables and views:** `SELECT TOP 100` (opens a new tab, lists every column and runs it), `SELECT *` without TOP (asks for confirmation first if the table has more than 100,000 rows), **View DDL**, **Table information** (approximate rows, space, indexes and foreign keys), copy name (qualified or plain) and **Refresh** for that node only
+  - **Databases:** new query (`USE [database]`), database DDL (collation and options), **Import data…** and refresh
   - **Procedures and functions:** view DDL (definition), copy name and refresh
+- **Import data** (right-click a database): load a CSV or JSON file into an existing table (with column mapping) or a new one (types inferred), in atomic batches
 - Editor with syntax highlighting, line numbers and multiple tabs (saved in the browser)
 - Runs the selected text or the whole script; supports `GO` and multiple result sets
 - AUTO TOP, history, favorites, save as `.sql`, light/dark theme
@@ -63,6 +64,7 @@ Copy the whole project into the site folder and use the `index.php` in the proje
 ```bash
 php tests/run.php
 node tests/xlsx.test.js
+node tests/import.test.js
 ```
 
 They cover the pure functions, the value objects and the `.xlsx` generator; neither needs a database.

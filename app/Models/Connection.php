@@ -5,7 +5,7 @@ namespace App\Models;
 
 use App\Support\Result;
 
-/** Credenciais e destino de uma conexão SQL Server. Imutável. */
+/** Credentials and target of a SQL Server connection. Immutable. */
 final readonly class Connection
 {
     public function __construct(
@@ -19,10 +19,10 @@ final readonly class Connection
     }
 
     /**
-     * Valida a entrada do formulário de login sem lançar exceções.
+     * Validates the login form input without throwing exceptions.
      *
      * @param list<string> $allowedServers
-     * @return Result<self> falha com mensagem amigável
+     * @return Result<self> fails with a friendly message
      */
     public static function fromLogin(array $input, array $allowedServers, bool $trustCertificate): Result
     {

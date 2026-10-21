@@ -3,11 +3,11 @@ declare(strict_types=1);
 
 namespace App\Http;
 
-/** Requisição HTTP imutável. */
+/** Immutable HTTP request. */
 final readonly class Request
 {
     /**
-     * @param array<string, string> $headers nomes em minúsculas
+     * @param array<string, string> $headers names in lower case
      */
     public function __construct(
         public string $method,
@@ -22,7 +22,7 @@ final readonly class Request
 
     public static function fromGlobals(): self
     {
-        // No IIS o REQUEST_URI pode faltar; o URL Rewrite entrega a URL original em HTTP_X_ORIGINAL_URL.
+        // On IIS, REQUEST_URI may be missing; URL Rewrite passes the original URL in HTTP_X_ORIGINAL_URL.
         $original = $_SERVER['REQUEST_URI'] ?? $_SERVER['HTTP_X_ORIGINAL_URL'] ?? $_SERVER['HTTP_X_REWRITE_URL'] ?? '/';
         $uri = (string) parse_url($original, PHP_URL_PATH);
         $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
@@ -42,7 +42,7 @@ final readonly class Request
             $_POST,
             $headers,
             (string) file_get_contents('php://input'),
-            !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off', // IIS envia "off"
+            !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off', // IIS sends "off"
         );
     }
 
@@ -51,7 +51,7 @@ final readonly class Request
         return $this->headers[strtolower($name)] ?? null;
     }
 
-    /** Corpo JSON decodificado (array vazio se inválido). */
+    /** Decoded JSON body (empty array if invalid). */
     public function json(): array
     {
         $data = json_decode($this->rawBody, true);
@@ -59,7 +59,7 @@ final readonly class Request
         return is_array($data) ? $data : [];
     }
 
-    /** URL relativa à raiz da aplicação. */
+    /** URL relative to the application root. */
     public function url(string $path = ''): string
     {
         return $this->basePath . '/' . ltrim($path, '/');

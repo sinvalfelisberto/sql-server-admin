@@ -2,120 +2,120 @@
 
 ## SQL Server Web Management Studio (PHP-SSMS Web)
 
-### 1. Visão Geral do Produto
+### 1. Product Overview
 
-* **Nome do Projeto (Provisório):** PHP-SSMS Web
-* **Objetivo:** Fornecer uma interface web moderna, leve e responsiva desenvolvida em PHP para administração e execução de queries em instâncias Microsoft SQL Server (on-premises e Azure SQL), reproduzindo a experiência ágil de clientes desktop como o SSMS diretamente pelo navegador.
-* **Público-Alvo:** Desenvolvedores PHP/Full Stack, DBAs, DevOps e times de suporte que trabalham em ambientes multiplataforma (Linux, macOS, Windows) e precisam de acesso rápido e seguro a instâncias SQL Server.
-
----
-
-### 2. Justificativa e Oportunidade
-
-* **Restrição de SO do SSMS:** O SSMS original é restrito ao ecossistema Windows e requer instalação pesada de software local.
-* **Carência no Ecossistema PHP:** Ferramentas consagradas como o phpMyAdmin são focadas primordialmente em MySQL/MariaDB. Utilitários genéricos (ex.: Adminer) oferecem suporte limitado ao SQL Server, sem suporte nativo a delimitadores de lote (`GO`), múltiplos result sets, granularidade de schemas, atalhos de produtividade de DBAs e menus de contexto práticos.
+* **Project Name (Provisional):** PHP-SSMS Web
+* **Goal:** Provide a modern, lightweight, responsive web interface built in PHP for administering and running queries on Microsoft SQL Server instances (on-premises and Azure SQL), reproducing the fast experience of desktop clients such as SSMS directly in the browser.
+* **Target Audience:** PHP/full-stack developers, DBAs, DevOps and support teams who work in cross-platform environments (Linux, macOS, Windows) and need fast, secure access to SQL Server instances.
 
 ---
 
-### 3. Personas de Usuário
+### 2. Rationale and Opportunity
 
-| Persona | Perfil | Caso de Uso Principal |
+* **SSMS operating system restriction:** The original SSMS is limited to the Windows ecosystem and requires a heavy local software installation.
+* **A gap in the PHP ecosystem:** Established tools such as phpMyAdmin focus primarily on MySQL/MariaDB. Generic utilities (for example, Adminer) offer limited SQL Server support, with no native support for batch delimiters (`GO`), multiple result sets, schema granularity, DBA productivity shortcuts and practical context menus.
+
+---
+
+### 3. User Personas
+
+| Persona | Profile | Main Use Case |
 | :--- | :--- | :--- |
-| **Desenvolvedor Web** | Desenvolve em Linux/macOS com PHP/Laravel/Symfony. | Inspecionar dados, rodar scripts de migração, testar consultas e visualizar DDLs rapidamente via browser. |
-| **Administrador / DBA** | Responsável por integridade, desempenho e segurança. | Inspecionar metadados de tabelas, checar índices, auditar consumo de espaço e gerenciar acessos. |
-| **Suporte Técnico / N2** | Atua na sustentação e correção de dados operacionais. | Fazer consultas pontuais (`SELECT TOP 100`), copiar nomes de objetos e exportar relatórios para CSV/Excel. |
+| **Web Developer** | Develops on Linux/macOS with PHP/Laravel/Symfony. | Inspect data, run migration scripts, test queries and view DDL quickly in the browser. |
+| **Administrator / DBA** | Responsible for integrity, performance and security. | Inspect table metadata, check indexes, audit space usage and manage access. |
+| **Technical Support / L2** | Maintains and fixes operational data. | Run one-off queries (`SELECT TOP 100`), copy object names and export reports to CSV/Excel. |
 
 ---
 
-### 4. Requisitos Funcionais (FR)
+### 4. Functional Requirements (FR)
 
-#### FR-01: Autenticação e Gestão de Conexões
-* **Múltiplos Perfis:** Configuração, teste e armazenamento de perfis de conexão (Host, Porta, Banco Padrão, Criptografia/Encrypt, TrustServerCertificate).
-* **Modos de Autenticação:**
-  * SQL Server Authentication (Usuário e Senha).
-  * Windows Authentication / Kerberos (quando aplicável ao ambiente de hospedagem).
-  * Azure SQL Database (suporte a Service Principal / Entra ID).
-* **Persistência Segura:** Credenciais armazenadas em sessão de PHP criptografada em memória, sem persistência de credenciais em texto puro.
+#### FR-01: Authentication and Connection Management
+* **Multiple Profiles:** Configure, test and store connection profiles (Host, Port, Default Database, Encryption/Encrypt, TrustServerCertificate).
+* **Authentication Modes:**
+  * SQL Server Authentication (user and password).
+  * Windows Authentication / Kerberos (when applicable to the hosting environment).
+  * Azure SQL Database (Service Principal / Entra ID support).
+* **Secure Persistence:** Credentials are kept in an encrypted, in-memory PHP session, with no clear-text credential persistence.
 
-#### FR-02: Navegador de Objetos (Object Explorer) & Menus de Contexto
-* **Árvore de Metadados:**
-  * Instância $\rightarrow$ Bancos de Dados $\rightarrow$ Schemas (ex.: `dbo`, `sales`, etc.).
-  * Tabelas, Views, Stored Procedures, Functions (Scalar e Table-Valued), Triggers e Sequences.
-  * Lazy loading sob demanda de colunas, índices, chaves primárias e constraints.
+#### FR-02: Object Explorer and Context Menus
+* **Metadata Tree:**
+  * Instance $\rightarrow$ Databases $\rightarrow$ Schemas (for example, `dbo`, `sales`, etc.).
+  * Tables, Views, Stored Procedures, Functions (Scalar and Table-Valued), Triggers and Sequences.
+  * On-demand lazy loading of columns, indexes, primary keys and constraints.
 
-* **Menu de Contexto (Clique com o Botão Direito):**
-  * **Em Tabelas e Views:**
-    * **SELECT TOP 100:** Abre uma nova aba no editor já preenchida com a query `SELECT TOP 100 * FROM [schema].[objeto]` e a dispara imediatamente.
-    * **SELECT \* SEM TOP:** Gera `SELECT * FROM [schema].[objeto]` no editor, disparando alerta/confirmação prévia caso a tabela possua volumetria elevada (prevenção contra sobrecarga de memória).
-    * **VER DDL:** Gera e abre em uma aba/modal o script DDL completo (`CREATE TABLE` ou `CREATE VIEW`), contemplando colunas, tipos de dados, chaves primárias/estrangeiras, defaults e índices.
-    * **Informações da Tabela:** Exibe modal detalhado de metadados contendo:
-      * Quantidade aproximada de linhas (`sys.dm_db_partition_stats`).
-      * Espaço em disco alocado (dados vs. índices vs. espaço não utilizado).
-      * Lista completa de índices (Clustered, Non-Clustered) e chaves estrangeiras relacionadas.
-    * **Copiar o Nome da Tabela:** Copia para a área de transferência do usuário o identificador qualificado (ex.: `[dbo].[Usuarios]`) ou nome simples.
-    * **Atualizar:** Dispara requisição assíncrona para atualizar apenas os metadados do nó selecionado sem precisar recarregar toda a árvore.
-  * **Em Bancos de Dados:**
-    * **Nova Consulta:** Abre um novo editor com o contexto explicitado (`USE [database]`).
-    * **Ver DDL / Script Database:** Exibe o script de criação da base com collation e opções ativas.
-    * **Atualizar:** Recarrega todos os objetos filhos do banco selecionado.
+* **Context Menu (Right Click):**
+  * **On Tables and Views:**
+    * **SELECT TOP 100:** Opens a new editor tab pre-filled with the query `SELECT TOP 100 * FROM [schema].[object]` and runs it immediately.
+    * **SELECT \* WITHOUT TOP:** Generates `SELECT * FROM [schema].[object]` in the editor, raising a prior alert/confirmation if the table has a high volume (preventing memory overload).
+    * **VIEW DDL:** Generates and opens, in a tab/modal, the complete DDL script (`CREATE TABLE` or `CREATE VIEW`), covering columns, data types, primary/foreign keys, defaults and indexes.
+    * **Table Information:** Shows a detailed metadata modal with:
+      * Approximate row count (`sys.dm_db_partition_stats`).
+      * Allocated disk space (data vs. indexes vs. unused space).
+      * Complete list of indexes (Clustered, Non-Clustered) and related foreign keys.
+    * **Copy Table Name:** Copies the qualified identifier (for example, `[dbo].[Users]`) or the plain name to the user's clipboard.
+    * **Refresh:** Fires an asynchronous request to refresh only the metadata of the selected node, without reloading the whole tree.
+  * **On Databases:**
+    * **New Query:** Opens a new editor with the context made explicit (`USE [database]`).
+    * **View DDL / Script Database:** Shows the database creation script with collation and active options.
+    * **Refresh:** Reloads all child objects of the selected database.
 
-#### FR-03: Editor T-SQL e Atalhos de Teclado
-* **Interface do Editor:** Monaco Editor ou CodeMirror com realce de sintaxe T-SQL, numeração de linhas e autocomplete contextual para schemas, tabelas e colunas.
-* **Atalhos de Execução de Consulta:**
-  * **`F5`**: Executa o script inteiro ou somente o bloco de texto selecionado pelo cursor (comportamento clássico SSMS).
-  * **`Ctrl + Enter` (ou `Cmd + Enter` no macOS)**: Executa a consulta ativa ou trecho em foco (padrão de ferramentas web).
-* **Divisão de Lotes (`GO`):** Parser para segmentar e disparar múltiplos batches de forma sequencial respeitando o delimitador nativo `GO`.
-* **Múltiplos Result Sets:** Capacidade de renderizar e alternar entre mais de um grid de resultados quando a query contiver múltiplas instruções de `SELECT`.
-* **Painel de Mensagens e Diagnóstico:** Exibição clara de saídas de comando `PRINT`, número de linhas afetadas por comando e avisos/erros T-SQL com número da linha.
-* **Histórico de Comandos:** Armazenamento local das últimas consultas executadas na sessão para repetição e auditoria rápida.
+#### FR-03: T-SQL Editor and Keyboard Shortcuts
+* **Editor Interface:** Monaco Editor or CodeMirror with T-SQL syntax highlighting, line numbers and contextual autocomplete for schemas, tables and columns.
+* **Query Execution Shortcuts:**
+  * **`F5`**: Runs the whole script or only the block of text selected by the cursor (classic SSMS behavior).
+  * **`Ctrl + Enter` (or `Cmd + Enter` on macOS)**: Runs the active query or the focused snippet (standard for web tools).
+* **Batch Splitting (`GO`):** A parser that splits and runs multiple batches sequentially, honoring the native `GO` delimiter.
+* **Multiple Result Sets:** Ability to render and switch between more than one result grid when the query contains multiple `SELECT` statements.
+* **Messages and Diagnostics Panel:** Clear display of `PRINT` output, the number of rows affected by each command, and T-SQL warnings/errors with the line number.
+* **Command History:** Local storage of the most recent queries run in the session for quick repetition and auditing.
 
-#### FR-04: Grade de Dados Interativa (Data Grid)
-* **Paginação Eficiente:** Paginação server-side construída com `OFFSET ... FETCH NEXT`.
-* **Edição Inline / CRUD:** Edição direta em células com validação prévia de chave primária para gerar o comando de `UPDATE`.
-* **Filtros e Ordenação:** Filtros visuais rápidos por coluna sem exigir digitação de SQL manual.
+#### FR-04: Interactive Data Grid
+* **Efficient Pagination:** Server-side pagination built with `OFFSET ... FETCH NEXT`.
+* **Inline Editing / CRUD:** Direct cell editing, with prior primary key validation to generate the `UPDATE` command.
+* **Filters and Sorting:** Quick visual per-column filters that do not require typing SQL by hand.
 
-#### FR-05: Exportação e Importação de Dados
-* **Exportação:** Suporte a saídas em CSV, JSON, Excel (`.xlsx`) e script T-SQL com instruções `INSERT INTO` agrupadas em lote.
-* **Importação:** Upload de CSV com mapeamento visual de colunas para inserção estruturada.
+#### FR-05: Data Export and Import
+* **Export:** Support for CSV, JSON, Excel (`.xlsx`) and T-SQL script output with batched `INSERT INTO` statements.
+* **Import:** CSV upload with visual column mapping for structured insertion.
 
-#### FR-06: Administração e Monitoramento
-* **Monitor de Sessões Ativas:** Visualização de processos em execução via `sys.dm_exec_requests` e `sys.dm_exec_sessions`, exibindo status, locks e tempo de execução.
-* **Gestão de Logins e Permissões:** Interface para criação e manutenção de Logins e atribuição a Database Roles predefinidas (ex.: `db_owner`, `db_datareader`, `db_datawriter`).
-
----
-
-### 5. Requisitos Não Funcionais (NFR)
-
-* **NFR-01 (Desempenho):** Tempo de resposta para carregamento de nós de metadados inferior a 200ms em rede local; carregamento assíncrono (Lazy Loading).
-* **NFR-02 (Segurança):**
-  * Proteção mandatória contra Cross-Site Scripting (XSS) e Cross-Site Request Forgery (CSRF).
-  * Conexões forçadas com TLS/SSL (`Encrypt=yes`).
-  * Modo **Somente Leitura** (*Read-Only Mode*) configurável globalmente para conexões com bases de produção críticas.
-* **NFR-03 (Compatibilidade e Stack):**
-  * Versão PHP: $\ge$ 8.2 (utilizando driver oficial Microsoft `pdo_sqlsrv` ou `sqlsrv`).
-  * Microsoft ODBC Driver for SQL Server (versões 17 ou 18).
-  * Compatibilidade de Banco: Microsoft SQL Server 2016, 2017, 2019, 2022 e Azure SQL Database.
-* **NFR-04 (Empacotamento):** Disponibilização de `Dockerfile` e `docker-compose.yml` oficiais com todas as dependências ODBC compiladas.
+#### FR-06: Administration and Monitoring
+* **Active Sessions Monitor:** View running processes through `sys.dm_exec_requests` and `sys.dm_exec_sessions`, showing status, locks and execution time.
+* **Login and Permission Management:** An interface to create and maintain Logins and assign them to predefined Database Roles (for example, `db_owner`, `db_datareader`, `db_datawriter`).
 
 ---
 
-### 6. Arquitetura Técnica Proposta
+### 5. Non-Functional Requirements (NFR)
+
+* **NFR-01 (Performance):** Response time for loading metadata nodes under 200 ms on a local network; asynchronous loading (lazy loading).
+* **NFR-02 (Security):**
+  * Mandatory protection against Cross-Site Scripting (XSS) and Cross-Site Request Forgery (CSRF).
+  * Connections forced over TLS/SSL (`Encrypt=yes`).
+  * **Read-Only Mode** configurable globally for connections to critical production databases.
+* **NFR-03 (Compatibility and Stack):**
+  * PHP version: $\ge$ 8.2 (using the official Microsoft `pdo_sqlsrv` or `sqlsrv` driver).
+  * Microsoft ODBC Driver for SQL Server (versions 17 or 18).
+  * Database compatibility: Microsoft SQL Server 2016, 2017, 2019, 2022 and Azure SQL Database.
+* **NFR-04 (Packaging):** Official `Dockerfile` and `docker-compose.yml` with all ODBC dependencies built in.
+
+---
+
+### 6. Proposed Technical Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                       Frontend Web                          │
-│        Tailwind CSS + Alpine.js / Vue.js 3 (SPA Leve)       │
-│   • Monaco Editor (Atalhos: F5 / Ctrl+Enter)                │
-│   • Custom Context Menu (SELECT TOP 100, DDL, Infos, etc.)  │
+│                       Web Frontend                          │
+│        Tailwind CSS + Alpine.js / Vue.js 3 (Light SPA)      │
+│   • Monaco Editor (Shortcuts: F5 / Ctrl+Enter)              │
+│   • Custom Context Menu (SELECT TOP 100, DDL, Info, etc.)   │
 └──────────────────────────────┬──────────────────────────────┘
                                │ JSON / REST API
 ┌──────────────────────────────▼──────────────────────────────┐
-│                    Backend PHP 8.2+                         │
-│            Slim Framework 4 ou Laravel Mini                 │
+│                    PHP 8.2+ Backend                         │
+│            Slim Framework 4 or Laravel Mini                 │
 ├─────────────────────────────────────────────────────────────┤
 │  Driver: Microsoft ODBC Driver + pdo_sqlsrv                 │
 └──────────────────────────────┬──────────────────────────────┘
-                               │ Porta TCP 1433 (TLS/SSL)
+                               │ TCP port 1433 (TLS/SSL)
 ┌──────────────────────────────▼──────────────────────────────┐
 │              Microsoft SQL Server / Azure SQL               │
 └─────────────────────────────────────────────────────────────┘
@@ -123,23 +123,23 @@
 
 ---
 
-### 7. Roadmap de Lançamento
+### 7. Release Roadmap
 
 ```
-MVP (Fase 1)              Produtividade (Fase 2)       Admin & Escala (Fase 3)
+MVP (Phase 1)             Productivity (Phase 2)       Admin & Scale (Phase 3)
 ┌─────────────────────┐   ┌────────────────────────┐   ┌────────────────────────┐
-│• Auth pdo_sqlsrv    │   │• Context Menu Botão    │   │• Monitor de sessões    │
-│• Árvore de Objetos  │──>│  Direito (DDL, TOP 100)│──>│  (sys.dm_exec_*)       │
-│• Editor T-SQL       │   │• Infos de Tabela       │   │• Gestão de Logins/Roles│
-│• Atalhos F5 e       │   │• Copiar nome do objeto │   │• Suporte a Tema Escuro │
-│  Ctrl + Enter       │   │• Exportação CSV/Excel  │   │• Read-Only Mode global │
+│• pdo_sqlsrv auth    │   │• Right-click Context   │   │• Session monitor       │
+│• Object tree        │──>│  Menu (DDL, TOP 100)   │──>│  (sys.dm_exec_*)       │
+│• T-SQL editor       │   │• Table info            │   │• Login/Role management │
+│• F5 and Ctrl + Enter│   │• Copy object name      │   │• Dark theme support    │
+│  shortcuts          │   │• CSV/Excel export      │   │• Global Read-Only Mode │
 └─────────────────────┘   └────────────────────────┘   └────────────────────────┘
 ```
 
 ---
 
-### 8. Critérios de Aceite e Métricas de Sucesso
+### 8. Acceptance Criteria and Success Metrics
 
-1. **Agilidade nos Atalhos:** Pressionar `F5` ou `Ctrl + Enter` no editor web executa a query sem acionar a recarga padrão da página do navegador.
-2. **Fluidez no Menu de Contexto:** O clique com botão direito em qualquer tabela ou view abre o menu em menos de 50ms, oferecendo opções de `SELECT TOP 100`, `SELECT * SEM TOP`, `VER DDL`, `Informações da Tabela`, `Copiar nome` e `Atualizar`.
-3. **Deploy Prático:** A aplicação sobe pronta para conexão em ambiente conteinerizado via comando único `docker compose up -d` em menos de 3 minutos.
+1. **Shortcut Responsiveness:** Pressing `F5` or `Ctrl + Enter` in the web editor runs the query without triggering the browser's default page reload.
+2. **Context Menu Fluidity:** Right-clicking any table or view opens the menu in under 50 ms, offering `SELECT TOP 100`, `SELECT * WITHOUT TOP`, `VIEW DDL`, `Table Information`, `Copy name` and `Refresh`.
+3. **Practical Deployment:** The application comes up ready to connect in a containerized environment with the single command `docker compose up -d`, in under 3 minutes.

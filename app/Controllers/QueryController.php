@@ -41,8 +41,8 @@ final class QueryController
         $maxRows = $this->config->int('max_rows', 10000);
         set_time_limit($this->config->int('query_timeout', 120) + 30);
 
-        // Com "page", um SELECT único é paginado no servidor: cada chamada devolve só uma página.
-        // "limit" vira o teto total (AUTO TOP) e o teto rígido max_rows vale por página.
+        // With "page", a single SELECT is paginated on the server: each call returns only one page.
+        // "limit" becomes the total cap (AUTO TOP) and the hard max_rows cap applies per page.
         $result = isset($in['page'])
             ? $this->executor->executePage(
                 $connection,
@@ -60,9 +60,9 @@ final class QueryController
     }
 
     /**
-     * Exporta o resultado COMPLETO de um SELECT único, reexecutando a consulta e escrevendo em fluxo.
-     * format: csv | json (download) | raw (JSON {columns, types, rows} para o navegador montar o .xlsx).
-     * Aceita formulário (download nativo) ou JSON.
+     * Exports the COMPLETE result of a single SELECT, re-running the query and streaming the output.
+     * format: csv | json (download) | raw (JSON {columns, types, rows} for the browser to build the .xlsx).
+     * Accepts a form (native download) or JSON.
      */
     public function export(Request $request): Response
     {

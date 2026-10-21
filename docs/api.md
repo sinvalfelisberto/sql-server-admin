@@ -88,10 +88,10 @@ Columns of a table or view; for procedures and functions, it returns the paramet
 | `type` | string | Object type (`U`/`V` returns columns; other values, parameters) |
 
 ```json
-{ "ok": true, "columns": [ { "name": "Id", "type": "int", "nullable": false, "pk": true } ] }
+{ "ok": true, "columns": [ { "name": "Id", "type": "int", "nullable": false, "pk": true, "identity": true, "computed": false } ] }
 ```
 
-`type` is the readable label (`nvarchar(100)`, `decimal(18,2)`, `varchar(max)`). Parameters come with `nullable: true` and `pk: false`.
+`type` is the readable label (`nvarchar(100)`, `decimal(18,2)`, `varchar(max)`). Parameters come with `nullable: true`, `pk: false`, `identity: false` and `computed: false`. For table columns, `identity` and `computed` flag identity and computed columns.
 
 ### `POST /api/ddl`
 
@@ -169,6 +169,31 @@ Runs a T-SQL script.
 - DDL statements and `INSERT` without a result set produce `(N row(s) affected)` messages; for DDL, `N` is 0.
 - The maximum time of each query is `query_timeout` (default 120 s). The PHP script gets that value + 30 s.
 - The script runs with no implicit transaction and **with the login's permissions**: `INSERT`/`UPDATE`/DDL really execute.
+
+### `POST /api/import`
+
+Inserts one batch of rows (already read from a CSV or JSON file by the browser) into a table, optionally creating the table first. Each call is **atomic**: the optional `CREATE TABLE` and all the `INSERT`s run in one transaction, and any error rolls the whole call back.
+
+| Field | Type | Description |
+|---|---|---|
+| `database` | string | Database |
+| `schema`, `table` | string | Destination (1–128 characters each) |
+| `columns` | list of strings | Destination column names, unique (ignoring case), 1 to 1024 |
+| `rows` | list of lists | Cell values, one value per column, each a string or `null`. At most 5000 rows and 50,000 cells per call |
+| `create` | list of `{name, type}` | Only on the first batch of a **new** table: its columns (all nullable). Omit or `null` to append to an existing table |
+
+```json
+{ "database": "Sales", "schema": "dbo", "table": "people",
+  "create": [ { "name": "id", "type": "int" }, { "name": "name", "type": "nvarchar(50)" } ],
+  "columns": ["id", "name"], "rows": [ ["1", "Ana"], ["2", null] ] }
+```
+
+Response: `{ "ok": true, "inserted": 2 }`, or the error envelope (`{"ok":false,"error":{"message":"…"}}`) with the SQL Server message, or one of: `Table [dbo].[x] not found.` (append to a missing table), `Invalid column definition for the new table.`, `Every row must have one value per mapped column.`, `Too many rows in a single request.`.
+
+- **Allowed `create` types** (a closed list, normalized to lower case): `int`, `bigint`, `smallint`, `tinyint`, `bit`, `float`, `real`, `date`, `datetime2`, `datetime`, `uniqueidentifier`, `nvarchar(1–4000|max)`, `varchar(1–8000|max)` and `decimal(p,s)` with `1 ≤ p ≤ 38` and `s ≤ p`. Anything else is rejected, so no SQL text from the client reaches the `CREATE TABLE`.
+- Values are bound as parameters (the SQL Server converts them to the column type); identifiers are quoted with `]` escaped.
+- Rows are inserted with multi-row `INSERT … VALUES`, at most 1000 rows and 2000 parameters per statement.
+- Calls are independent: a multi-batch import is **not** atomic as a whole.
 
 ### `POST /api/export`
 

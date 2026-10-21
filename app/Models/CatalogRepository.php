@@ -5,7 +5,7 @@ namespace App\Models;
 
 use PDO;
 
-/** Leitura do catálogo do servidor (bancos, objetos, colunas). */
+/** Reads the server catalog (databases, objects, columns). */
 final class CatalogRepository
 {
     private const SQL_OBJECTS = <<<'SQL'
@@ -18,6 +18,7 @@ final class CatalogRepository
 
     private const SQL_COLUMNS = <<<'SQL'
         SELECT c.name, t.name AS type, c.max_length, c.precision, c.scale, c.is_nullable,
+               c.is_identity, c.is_computed,
                CASE WHEN EXISTS (
                    SELECT 1 FROM sys.index_columns ic
                      JOIN sys.indexes i ON i.object_id = ic.object_id AND i.index_id = ic.index_id
@@ -30,7 +31,8 @@ final class CatalogRepository
         SQL;
 
     private const SQL_PARAMETERS = <<<'SQL'
-        SELECT p.name, t.name AS type, p.max_length, p.precision, p.scale, 1 AS is_nullable, 0 AS is_pk
+        SELECT p.name, t.name AS type, p.max_length, p.precision, p.scale, 1 AS is_nullable,
+               0 AS is_identity, 0 AS is_computed, 0 AS is_pk
           FROM sys.parameters p
           JOIN sys.types t ON t.user_type_id = p.user_type_id
          WHERE p.object_id = OBJECT_ID(?) AND p.parameter_id > 0
@@ -78,7 +80,7 @@ final class CatalogRepository
     }
 
     /**
-     * Metadados de tabela/view: linhas aproximadas, espaço, índices e chaves estrangeiras.
+     * Table/view metadata: approximate rows, space, indexes and foreign keys.
      *
      * @return array{rows:?int,reservedKb:int,dataKb:int,indexKb:int,unusedKb:int,indexes:list<array>,foreignKeys:list<array>}
      */
@@ -133,9 +135,9 @@ final class CatalogRepository
     }
 
     /**
-     * Colunas de tabelas/views; parâmetros de procedures e funções.
+     * Columns of tables/views; parameters of procedures and functions.
      *
-     * @return list<array{name:string,type:string,nullable:bool,pk:bool}>
+     * @return list<array{name:string,type:string,nullable:bool,pk:bool,identity:bool,computed:bool}>
      */
     public function columns(Connection $connection, string $database, string $schema, string $name, string $type): array
     {

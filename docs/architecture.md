@@ -93,10 +93,11 @@ docs/               this documentation
 | `ObjectScripter` | Generates DDL for tables, views, procedures, functions and databases |
 | `QueryExecutor` | Splits on `GO`, runs batch by batch, reads result sets (limit + 1 row to detect truncation) and messages (`PRINT`, affected rows) |
 | `QueryResult` | Immutable value with sets, messages, error and time |
+| `DataImporter` | Creates a table (if asked) and inserts a batch of imported rows in one transaction, with multi-row parameterized `INSERT`s |
 
 ### Pure functions (`app/Models/functions.php`, `ddl.php`)
 
-No I/O and no state: they are covered by tests without needing a database. Main ones: `quote_identifier`, `normalize_server`, `ensure_server_allowed`, `build_dsn`, `split_batches`, `effective_limit`, `type_label`, `column_view`, `database_view`, `safe_cell`, `column_descriptor`, `clean_error_message`, `pdo_error`, `group_indexes`, `group_foreign_keys`, `space_view`, `build_create_table`, `build_create_database`, `mask_sql`, `paginate_sql`, `csv_separator`, `csv_cell`, `csv_line`, `unique_keys`, `safe_filename`, `is_decimal_type`, `format_decimal`.
+No I/O and no state: they are covered by tests without needing a database. Main ones: `quote_identifier`, `normalize_server`, `ensure_server_allowed`, `build_dsn`, `split_batches`, `effective_limit`, `type_label`, `column_view`, `database_view`, `safe_cell`, `column_descriptor`, `clean_error_message`, `pdo_error`, `group_indexes`, `group_foreign_keys`, `space_view`, `build_create_table`, `build_create_database`, `mask_sql`, `paginate_sql`, `csv_separator`, `csv_cell`, `csv_line`, `unique_keys`, `safe_filename`, `is_decimal_type`, `format_decimal`, `import_column_type`, `insert_batch_size`, `build_insert_sql`, `build_import_create_table`.
 
 ## Front end
 
@@ -104,6 +105,8 @@ Static files with no build step:
 
 - `public/assets/js/app.js`: the whole interface (editor with highlighting and line numbers, tabs, Object Explorer, context menu, grid, export, history and favorites). It talks to the server only through `POST /api/*` (`api()` sends the `X-CSRF-Token`; a 401 response leads to the login).
 - `public/assets/js/xlsx.js`: a dependency-free `.xlsx` generator. An `.xlsx` is a ZIP of XML files; the ZIP is written with the *stored* method (no compression), with the CRC-32 computed in JS. It exposes `XlsxWriter.build(columns, types, rows)` (Blob, in the browser) and `buildBytes(...)` (bytes, used in Node by the tests).
+- `public/assets/js/import.js`: reads CSV and JSON files for the import dialog (delimiter detection, an RFC 4180 CSV parser, JSON arrays of objects, column type inference). Loaded in Node by `tests/import.test.js`; the dialog itself is in `app.js`.
+- `public/assets/js/login.js`: the show/hide password button on the login screen.
 - `public/assets/css/app.css`: light/dark theme (`data-theme` attribute).
 - Local state (`localStorage`, prefix `sqlwm.`): `tabs`, `activeTab`, `history`, `favorites`, `db`, `autoTop`, `autoTopN`, `theme`, `sidebarWidth`.
 
@@ -127,6 +130,27 @@ flowchart LR
 
 `QueryExecutor::executePage` uses `paginate_sql` (a pure function) to append `OFFSET … FETCH` to the single `SELECT`, after masking comments, strings and parentheses (`mask_sql`) to find the keywords of the main statement. It asks for one extra row to know whether a next page exists (`hasMore`). When the query is not paginable, or the server rejects the paginated version, it returns `null` and `QueryController` falls back to the normal `execute`.
 
+## Import flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant B as Browser (app.js + import.js)
+    participant S as POST /api/import
+    participant D as SQL Server
+    U->>B: right-click database → Import data…
+    B->>S: POST /api/columns (target table)
+    U->>B: choose file, destination, mapping
+    B->>B: parse CSV/JSON, infer types
+    loop batches of up to 1000 rows
+        B->>S: columns + rows (+ create on the first batch of a new table)
+        S->>D: BEGIN; CREATE TABLE?; INSERT … VALUES …; COMMIT
+        D-->>B: inserted n, or error (batch rolled back)
+    end
+```
+
+The file never reaches the server as a file: the browser parses it and sends rows in batches. Each batch is one transaction; the whole import is not (see [ADR 0005](adr/0005-client-side-import-batches.md)).
+
 ## Decisions
 
-See the [ADRs](adr/README.md): [0001 – no Composer and no front-end build](adr/0001-no-composer-no-build.md), [0002 – credentials in the session and a connection per request](adr/0002-credentials-in-session.md), [0003 – client-side export and an in-house `.xlsx`](adr/0003-client-side-xlsx.md), [0004 – server-side pagination with `OFFSET/FETCH`](adr/0004-server-side-pagination.md).
+See the [ADRs](adr/README.md): [0001 – no Composer and no front-end build](adr/0001-no-composer-no-build.md), [0002 – credentials in the session and a connection per request](adr/0002-credentials-in-session.md), [0003 – client-side export and an in-house `.xlsx`](adr/0003-client-side-xlsx.md), [0004 – server-side pagination with `OFFSET/FETCH`](adr/0004-server-side-pagination.md), [0005 – client-side parsing and batched imports](adr/0005-client-side-import-batches.md).

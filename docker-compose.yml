@@ -7,7 +7,7 @@ services:
     ports:
       - "${SQLWM_PORT:-8080}:80"
     environment:
-      # Valores vazios são ignorados e valem os padrões de config/config.php.
+      # Empty values are ignored and the defaults in config/config.php apply.
       SQLWM_DEFAULT_SERVER: ${SQLWM_DEFAULT_SERVER:-}
       SQLWM_ALLOWED_SERVERS: ${SQLWM_ALLOWED_SERVERS:-}
       SQLWM_ENCRYPT: ${SQLWM_ENCRYPT:-}
@@ -27,10 +27,10 @@ services:
       retries: 3
       start_period: 10s
 
-  # SQL Server de demonstração: docker compose --profile demo up -d
-  # Na tela de login use servidor "mssql", usuário "sa" e a senha definida em MSSQL_SA_PASSWORD.
-  # A senha NÃO tem valor padrão: defina-a no .env (não versionado) antes de subir o perfil demo.
-  # O SQL Server exige senha forte (8+ caracteres, com 3 de 4: maiúscula, minúscula, número, símbolo).
+  # Demo SQL Server: docker compose --profile demo up -d
+  # On the login screen use server "mssql", user "sa" and the password set in MSSQL_SA_PASSWORD.
+  # The password has NO default value: set it in .env (not versioned) before starting the demo profile.
+  # SQL Server requires a strong password (8+ characters, 3 of 4: upper case, lower case, digit, symbol).
   mssql:
     profiles: ["demo"]
     image: mcr.microsoft.com/mssql/server:2022-latest

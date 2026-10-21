@@ -5,7 +5,7 @@ namespace App\Models;
 
 use PDO;
 
-/** Gera scripts DDL de bancos e objetos a partir do catálogo do servidor. */
+/** Generates DDL scripts for databases and objects from the server catalog. */
 final class ObjectScripter
 {
     private const SQL_COLUMNS = <<<'SQL'
@@ -41,7 +41,7 @@ final class ObjectScripter
     ) {
     }
 
-    /** CREATE TABLE completo para tabelas; definição do objeto para views, procedures e funções. */
+    /** Complete CREATE TABLE for tables; the object definition for views, procedures and functions. */
     public function script(Connection $connection, string $database, string $schema, string $name, string $type): string
     {
         $pdo = $this->factory->open($connection, $database);

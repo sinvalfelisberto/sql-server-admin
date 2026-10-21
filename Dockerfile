@@ -4,7 +4,7 @@ FROM php:8.3-apache
 ENV ACCEPT_EULA=Y \
     DEBIAN_FRONTEND=noninteractive
 
-# Driver ODBC 18 (repositório oficial da Microsoft) e extensões sqlsrv/pdo_sqlsrv (PECL).
+# ODBC Driver 18 (Microsoft's official repository) and the sqlsrv/pdo_sqlsrv extensions (PECL).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends $PHPIZE_DEPS curl gnupg ca-certificates unixodbc-dev \
  && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \

@@ -5,7 +5,7 @@ namespace App\Core;
 
 use RuntimeException;
 
-/** Container mínimo: fábricas explícitas, instâncias únicas (lazy). Sem autowiring mágico. */
+/** Minimal container: explicit factories, single (lazy) instances. No magic autowiring. */
 final class Container
 {
     /** @var array<string, callable(self): mixed> */

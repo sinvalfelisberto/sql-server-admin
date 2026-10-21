@@ -4,12 +4,12 @@ declare(strict_types=1);
 namespace App\Http;
 
 /**
- * Fábricas de middleware. Cada uma devolve uma função fn(Request, callable $next): Response,
- * compostas em pipeline pelo Router.
+ * Middleware factories. Each returns a function fn(Request, callable $next): Response,
+ * composed into a pipeline by the Router.
  */
 final class Middleware
 {
-    /** Páginas HTML: sem login, redireciona para /login. */
+    /** HTML pages: without a session, redirects to /login. */
     public static function authPage(Session $session): \Closure
     {
         return static fn (Request $r, callable $next): Response => $session->isLoggedIn()
@@ -17,7 +17,7 @@ final class Middleware
             : Response::redirect($r->url('login'));
     }
 
-    /** API JSON: sem login, responde 401. */
+    /** JSON API: without a session, responds 401. */
     public static function authApi(Session $session): \Closure
     {
         return static fn (Request $r, callable $next): Response => $session->isLoggedIn()
@@ -25,7 +25,7 @@ final class Middleware
             : Response::json(['ok' => false, 'error' => ['message' => 'Session expired. Please sign in again.']], 401);
     }
 
-    /** Quem já está logado não precisa ver a tela de login. */
+    /** Users who are already signed in do not need the login screen. */
     public static function guest(Session $session): \Closure
     {
         return static fn (Request $r, callable $next): Response => $session->isLoggedIn()
@@ -33,7 +33,7 @@ final class Middleware
             : $next($r);
     }
 
-    /** Exige token CSRF no cabeçalho X-CSRF-Token ou no campo de formulário "csrf". */
+    /** Requires a CSRF token in the X-CSRF-Token header or the "csrf" form field. */
     public static function csrf(Session $session): \Closure
     {
         return static function (Request $r, callable $next) use ($session): Response {

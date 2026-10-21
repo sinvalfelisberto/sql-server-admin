@@ -12,15 +12,17 @@ docker compose --profile demo up -d  # alternative: app + demo SQL Server
 ## Tests
 
 ```bash
-php tests/run.php          # pure functions and value objects: 92 checks, no database
+php tests/run.php          # pure functions and value objects: 98 checks, no database
 node tests/xlsx.test.js    # .xlsx generator: 11 tests, no database or browser
+node tests/import.test.js  # CSV/JSON reading for the import: 12 tests, no database or browser
 ```
 
 - `tests/run.php` is a custom runner (the `check(name, actual, expected)` function) that covers `Result`, `pipe`/`partial`/`take`/`pipeline`, `Config::fromEnv`, the functions in `functions.php`/`ddl.php` and `Connection::fromLogin`. It needs no database.
+- `tests/import.test.js` covers the delimiter detection, the CSV parser (quotes, line breaks, BOM), JSON reading, column type inference and table name suggestions.
 - `tests/xlsx.test.js` reads the generated ZIP and checks the signatures, the CRC-32 and the contents of the XML files.
 - **There are no automated tests** for the controllers, `QueryExecutor`, `CatalogRepository` (they depend on SQL Server) or `app.js`. Validate those parts manually, for example with Docker's `demo` profile.
 
-Before opening a PR: run the two commands above and `php -l` on the changed files.
+Before opening a PR: run the three commands above and `php -l` on the changed files.
 
 ## Code conventions
 
@@ -32,7 +34,7 @@ The project combines three styles, each where it pays off most (see the [archite
 - Every PHP file starts with `declare(strict_types=1);`.
 - Expected errors (validation) are values (`Result`); exceptions are for the unexpected.
 - Template output always goes through `$e(...)`.
-- User-facing text (UI, messages, generated SQL comments) is in English (US). Source code comments are still mostly in Brazilian Portuguese; identifiers are in English.
+- Everything is in English (US): user-facing text (UI, messages, generated SQL comments), source code comments, test names, configuration comments, identifiers and documentation.
 - No autowiring: register every dependency in `Application::container()`.
 
 ## Recipes
@@ -58,7 +60,7 @@ The `Router` matches the **exact** path; there are no URL parameters. Send the d
 
 ### Add an export format
 
-In `app.js`, the `// ---------- Exportação ----------` section has `exportRows()` (data), the converters (`toCsv`, `toJson`, `XlsxWriter.build`) and `exportName(sql, ext)` (file name in the `schema.table_ddMMyyyy.ext` pattern). Create the converter, the button in `app/Views/editor.php` and the listener in `bind()` (next to `btn-csv`/`btn-xls`/`btn-json`).
+In `app.js`, the `// ---------- Export ----------` section has `exportRows()` (data), the converters (`toCsv`, `toJson`, `XlsxWriter.build`) and `exportName(sql, ext)` (file name in the `schema.table_ddMMyyyy.ext` pattern). Create the converter, the button in `app/Views/editor.php` and the listener in `bind()` (next to `btn-csv`/`btn-xls`/`btn-json`).
 
 ### Work on the `.xlsx` generator
 

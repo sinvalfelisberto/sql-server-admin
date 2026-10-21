@@ -7,7 +7,7 @@ For people who query and administer a SQL Server from the browser.
 1. Open the application (for example, `http://localhost:8080`).
 2. Fill in:
    - **Server:** `host`, `host\instance`, `host,port` or `host:port` (for example, `myserver:1433`). `host:port` is converted to `host,port`.
-   - **User** and **Password:** SQL Server authentication login. Windows authentication is not supported.
+   - **User** and **Password:** SQL Server authentication login. Windows authentication is not supported. The eye button at the end of the **Password** field shows or hides what you typed.
    - **Trust server certificate:** check it if the server uses a self-signed certificate (Driver 18 encrypts by default).
 3. Click **Connect**.
 
@@ -34,7 +34,7 @@ Tabs, history, favorites, theme, the selected database and AUTO TOP are stored i
 - System databases are marked `SYS`. Only databases the login can access are listed.
 - The **Filter objects...** field filters the tree. Each group shows at most 500 objects; beyond that you see `… N more (refine the filter)`. The refresh button at the top reloads everything.
 - Clicking a column inserts its name into the editor.
-- Double-clicking a table runs `SELECT TOP` on it, in a new tab.
+- Double-clicking a table runs `SELECT TOP` on it, in a new tab, listing every column of the table (the row count comes from AUTO TOP).
 
 ### Context menu (right click)
 
@@ -42,14 +42,14 @@ Tabs, history, favorites, theme, the selected database and AUTO TOP are stored i
 
 | Item | What it does |
 |---|---|
-| **SELECT TOP 100** | Opens a new tab and runs it |
+| **SELECT TOP 100** | Opens a new tab and runs it. The query lists each column of the table, one per line, instead of `*` (as in SSMS) |
 | **SELECT \* (no TOP)** | Opens a new tab with `SELECT *`. If the table has more than 100,000 rows, it asks for confirmation first |
 | **View DDL** | Shows the `CREATE TABLE` script (columns, identity, computed columns, defaults, PK/UNIQUE, indexes, foreign keys and checks). For views, it shows the definition |
 | **Table information** | Approximate rows, space (reserved, data, indexes, unused), indexes and foreign keys |
 | **Copy qualified name** / **Copy plain name** | Copies `[schema].[name]` or just the name |
 | **Refresh** | Reloads only that node |
 
-**Databases:** **New query** (opens a tab with `USE [database]`), **View DDL (database script)** (collation and active options; the MDF/LDF files are not included) and **Refresh**.
+**Databases:** **New query** (opens a tab with `USE [database]`), **View DDL (database script)** (collation and active options; the MDF/LDF files are not included), **Import data…** (see [Import data](#import-data)) and **Refresh**.
 
 **Procedures and functions:** **View DDL** (the object definition), copy name and **Refresh**. If the definition is unavailable, the script says so: the object does not exist, is encrypted, or you lack the `VIEW DEFINITION` permission.
 
@@ -155,9 +155,31 @@ The name follows the pattern `schema.table_ddMMyyyy.extension`, for example `Sal
 - Nulls become empty cells.
 - The worksheet is named **Result**.
 
+## Import data
+
+Right-click a database and choose **Import data…** to load a CSV or JSON file into a table of that database.
+
+1. **File:** pick a `.csv`, `.tsv`, `.txt` or `.json` file. The dialog shows the number of rows and columns.
+   - **CSV:** choose the **Delimiter** (`;`, `,`, **Tab**, `|`, or **Auto-detect**, the default) and whether the **first row contains column names**. Quotes (`"a;b"`, `""` for a literal quote) and line breaks inside quoted cells are supported. Without a header, columns are named `column_1`, `column_2`…
+   - **JSON:** an **array of objects**, for example `[{"id": 1, "name": "Ana"}]`. The columns are the keys of all objects, in order of appearance. Nested objects and arrays are stored as JSON text. Anything else (an object, an array of arrays) is rejected with a message.
+2. **Destination:** choose one of:
+   - **Existing table:** each file column gets a selector for the target column (or **(skip)**); columns with the same name (ignoring case, spaces and punctuation) are mapped automatically. Identity, computed and `rowversion` columns are not listed, because they cannot be inserted. The dialog warns about `NOT NULL` columns you did not map.
+   - **New table:** type a schema (default `dbo`) and a name; the table is created with one nullable column per file column. Names and types can be edited; types are suggested from the data (`int`, `bigint`, `decimal(38,s)`, `bit`, `date`, `datetime2`, otherwise `nvarchar(n)`/`nvarchar(max)`).
+3. **Treat empty values as NULL** (on by default): empty cells and missing JSON keys become `NULL`.
+4. Click **Import**. A progress bar shows the rows sent. When it finishes, an **Import completed** window summarizes the result (rows imported, destination, whether the table was created, file, number of columns and time) and offers **View data (SELECT TOP 100)** to open the table in a new tab.
+
+**How it behaves**
+
+- Rows are **appended**; nothing is updated or deleted, and there is no "truncate first" option.
+- Values travel as text and SQL Server converts them to each column's type. Prefer ISO dates (`2026-10-09`, `2026-10-09 11:11:43`); other formats depend on the server's language settings. Numbers must use a dot as the decimal separator.
+- The file is read and parsed in the browser, up to 1,000,000 rows. Rows are sent in batches of up to 1,000 rows (fewer for wide files). **Each batch is atomic**: if a row fails (for example, a value that does not convert), nothing from that batch is saved.
+- If a later batch fails, batches already sent **stay in the table**. The message tells you which rows failed and how many were imported; fix the cause and use **Resume from row N** to continue (the mapping is locked meanwhile). If the very first batch fails, nothing was created or inserted and you can adjust and try again.
+- Closing the dialog while it runs stops after the current batch.
+- It needs `INSERT` permission on the table (and `CREATE TABLE` for a new one). A new table appears in the Object Explorer when the import finishes.
+
 ## Not available yet
 
-The PRD describes, but **does not implement**: export as a T-SQL script with `INSERT INTO`, CSV import, read-only mode and the administration and monitoring features (FR-06). The application runs arbitrary SQL with the permissions of the login provided.
+The PRD describes, but **does not implement**: export as a T-SQL script with `INSERT INTO`, importing other formats (only CSV and JSON are supported), updating or truncating tables during an import, read-only mode and the administration and monitoring features (FR-06). The application runs arbitrary SQL with the permissions of the login provided.
 
 ## Shortcuts
 

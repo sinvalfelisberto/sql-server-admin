@@ -1,7 +1,7 @@
 (() => {
     'use strict';
 
-    // ---------- Utilidades ----------
+    // ---------- Utilities ----------
     const $ = (id) => document.getElementById(id);
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
 
@@ -13,7 +13,7 @@
             } catch { return fallback; }
         },
         set(key, value) {
-            try { localStorage.setItem('sqlwm.' + key, JSON.stringify(value)); } catch { /* cota cheia */ }
+            try { localStorage.setItem('sqlwm.' + key, JSON.stringify(value)); } catch { /* storage quota full */ }
         },
     };
 
@@ -46,7 +46,7 @@
 
     function icon(name, cls = '') {
         const s = el('span', { class: 'ico ' + cls });
-        s.innerHTML = ICONS[name]; // SVG estático definido acima
+        s.innerHTML = ICONS[name]; // static SVG defined above
         return s;
     }
 
@@ -87,7 +87,7 @@
 
     const ddMMyyyy = (d = new Date()) => [d.getDate(), d.getMonth() + 1].map((n) => String(n).padStart(2, '0')).join('') + d.getFullYear();
 
-    /** Nome do arquivo exportado: schema.tabela_ddMMyyyy.ext (tabela = alvo do primeiro FROM; sem FROM vira "resultado"). */
+    /** Exported file name: schema.table_ddMMyyyy.ext (table = target of the first FROM; without a FROM it becomes "result"). */
     function exportName(sql, ext) {
         const text = (sql ?? '').replace(/--[^\n]*|\/\*[\s\S]*?\*\//g, ' ');
         const part = '(?:\\[[^\\]]+\\]|"[^"]+"|[\\w$#@]+)';
@@ -102,7 +102,7 @@
         return `${base.replace(/[\\/:*?"<>|\s]+/g, '_')}_${ddMMyyyy()}.${ext}`;
     }
 
-    // ---------- Editor com realce de sintaxe ----------
+    // ---------- Editor with syntax highlighting ----------
     const ta = $('editor');
     const hl = $('hl');
     const gutter = $('gutter');
@@ -121,7 +121,7 @@
             else if (m[5] !== undefined) out += KEYWORDS.has(m[5].toUpperCase()) ? `<span class="tk">${esc(m[5])}</span>` : esc(m[5]);
             else out += esc(m[6]);
         }
-        // Uma quebra final precisa de um caractere para ocupar a linha.
+        // A trailing line break needs a character to occupy the line.
         return /\n$/.test(sql) ? out + ' ' : out;
     }
 
@@ -148,7 +148,7 @@
         ta.dispatchEvent(new Event('input'));
     }
 
-    // ---------- Abas de consulta ----------
+    // ---------- Query tabs ----------
     let tabs = store.get('tabs', null);
     let activeId = store.get('activeTab', null);
     let nextId = 1;
@@ -159,7 +159,7 @@
     nextId = Math.max(...tabs.map((t) => t.id)) + 1;
     if (!tabs.some((t) => t.id === activeId)) activeId = tabs[0].id;
 
-    const models = new Map(); // id da aba -> estado dos resultados
+    const models = new Map(); // tab id -> results state
     const activeTab = () => tabs.find((t) => t.id === activeId);
 
     let saveTimer;
@@ -189,7 +189,7 @@
         activeId = id;
         const tab = activeTab();
         ta.value = tab.sql;
-        // Cada aba lembra o seu banco; só aplica se ele ainda existe na lista.
+        // Each tab remembers its database; only applied if it still exists in the list.
         if (tab.db && [...$('db-select').options].some((o) => o.value === tab.db)) setDb(tab.db);
         refreshEditor();
         renderTabs();
@@ -208,14 +208,14 @@
     function closeTab(id) {
         const idx = tabs.findIndex((t) => t.id === id);
         models.delete(id);
-        // Fechar a última aba abre uma nova em branco, como no SSMS.
+        // Closing the last tab opens a new blank one, as in SSMS.
         if (tabs.length === 1) { tabs.splice(idx, 1); addTab(); return; }
         tabs.splice(idx, 1);
         if (id === activeId) switchTab(tabs[Math.max(0, idx - 1)].id);
         else { renderTabs(); persistTabs(); }
     }
 
-    // ---------- Execução ----------
+    // ---------- Execution ----------
     let running = false;
 
     function setRunning(on) {
@@ -225,7 +225,7 @@
         btn.lastChild.textContent = on ? ' Running…' : ' Run';
     }
 
-    /** @param {{unlimited?: boolean}} opts unlimited ignora o AUTO TOP (vale só o teto do servidor) */
+    /** @param {{unlimited?: boolean}} opts unlimited ignores AUTO TOP (only the server cap applies) */
     async function run(sqlOverride, { unlimited = false } = {}) {
         if (running) return;
         const selected = ta.value.substring(ta.selectionStart, ta.selectionEnd).trim();
@@ -240,7 +240,7 @@
         const req = { sql, database: $('db-select').value, limit };
         let res;
         try {
-            // "page" pede paginação no servidor (só vale para um SELECT único; senão volta o resultado inteiro).
+            // "page" requests server-side pagination (only for a single SELECT; otherwise the whole result comes back).
             res = await api('execute', { ...req, page: 1, page_size: size });
         } catch (e) {
             res = { ok: false, error: { message: e.message }, sets: [], messages: [], total_rows: 0, elapsed_ms: 0 };
@@ -266,7 +266,7 @@
         }
     }
 
-    /** Resultado paginado no servidor: carrega outra página repetindo a consulta. */
+    /** Result paginated on the server: loads another page by repeating the query. */
     async function loadPage(m, page) {
         if (running) return;
         setRunning(true);
@@ -283,7 +283,7 @@
         renderResults();
     }
 
-    // ---------- Resultados ----------
+    // ---------- Results ----------
     const currentModel = () => models.get(activeId);
     const currentSet = (m) => m && m.res.sets[m.setIdx];
 
@@ -339,7 +339,7 @@
         }
 
         const rows = m.view ?? computeView(m);
-        const paged = m.res.page; // página já recortada pelo servidor
+        const paged = m.res.page; // page already cut by the server
         const size = paged ? rows.length || 1 : m.size || rows.length || 1;
         const rowBase = paged ? (paged.page - 1) * paged.size : 0;
         const pages = Math.max(1, Math.ceil(rows.length / size));
@@ -347,7 +347,7 @@
         const slice = rows.slice((m.page - 1) * size, m.page * size);
 
         const numCols = set.columns.map((c) => /int|decimal|numeric|float|real|money/i.test(c.type));
-        const decimalCols = set.columns.map((c) => DECIMAL_TYPE.test(c.type)); // exibidos no padrão SQL, como na exportação
+        const decimalCols = set.columns.map((c) => DECIMAL_TYPE.test(c.type)); // shown in the SQL standard, as in the export
         const head = el('tr', {}, el('th', { class: 'rn', text: '#' }),
             set.columns.map((c, idx) => {
                 const sorted = m.sort && m.sort.col === idx;
@@ -442,10 +442,10 @@
         $('sb-time').textContent = m ? `◔ ${fmt(m.res.elapsed_ms)} ms` : '';
     }
 
-    // ---------- Exportação ----------
+    // ---------- Export ----------
     const DECIMAL_TYPE = /^(decimal|numeric|money|smallmoney)$/i;
 
-    /** Decimal no padrão SQL: ponto e no mínimo duas casas ("30000.0000" -> "30000.00", ".0000" -> "0.00"). Espelha format_decimal() do PHP. */
+    /** Decimal in the SQL standard: a dot and at least two decimal places ("30000.0000" -> "30000.00", ".0000" -> "0.00"). Mirrors PHP's format_decimal(). */
     function formatDecimal(value) {
         const m = /^(-?)(\d*)\.(\d+)$/.exec(String(value).trim());
         if (!m) return value;
@@ -466,19 +466,19 @@
         return { columns: set.columns.map((c) => c.name), types, rows };
     }
 
-    /** Resultado paginado no servidor? Então a exportação reexecuta a consulta e traz tudo, não só a página. */
+    /** Result paginated on the server? Then the export re-runs the query and brings everything, not just the page. */
     const pagedModel = () => { const m = currentModel(); return m && m.res.page ? m : null; };
 
     let exportFrame;
-    /** Download em fluxo: um formulário para um iframe oculto; o navegador grava direto, sem montar o arquivo na memória. */
+    /** Streamed download: a form posted to a hidden iframe; the browser saves it directly, without building the file in memory. */
     function serverDownload(m, format) {
         if (!exportFrame) {
             exportFrame = el('iframe', { name: 'export-frame', hidden: true, title: 'Export' });
             exportFrame.addEventListener('load', () => {
-                // Só dispara quando o servidor respondeu com uma página (erro) em vez de um arquivo.
+                // Only fires when the server answered with a page (an error) instead of a file.
                 let text = '';
-                try { text = exportFrame.contentDocument.body.textContent.trim(); } catch { /* sem acesso */ }
-                try { toast(JSON.parse(text).error.message); } catch { /* download normal */ }
+                try { text = exportFrame.contentDocument.body.textContent.trim(); } catch { /* no access */ }
+                try { toast(JSON.parse(text).error.message); } catch { /* normal download */ }
             });
             document.body.append(exportFrame);
         }
@@ -506,7 +506,7 @@
         }
     }
 
-    /** Separador de CSV escolhido na tela: ";", ",", "|" ou "tab" (tabulação). */
+    /** CSV separator chosen on screen: ";", ",", "|" or "tab" (a tab character). */
     const csvSeparator = () => $('csv-sep').value;
 
     function toCsv({ columns, rows }) {
@@ -528,23 +528,23 @@
         return JSON.stringify(rows.map((r) => Object.fromEntries(keys.map((k, i) => [k, r[i]]))), null, 2);
     }
 
-    /** Cópia síncrona via textarea: funciona dentro do gesto do usuário, sem permissão e em http. */
+    /** Synchronous copy via a textarea: works inside the user gesture, without permission and over http. */
     function legacyCopy(text) {
         const tmp = el('textarea', { style: 'position:fixed;opacity:0', readonly: true });
         tmp.value = text;
         document.body.append(tmp);
         tmp.select();
         let ok = false;
-        try { ok = document.execCommand('copy'); } catch { /* sem suporte */ }
+        try { ok = document.execCommand('copy'); } catch { /* not supported */ }
         tmp.remove();
         return ok;
     }
 
-    /** Copia para a área de transferência; devolve se conseguiu. */
+    /** Copies to the clipboard; returns whether it worked. */
     async function copyText(text) {
         if (legacyCopy(text)) return true;
         try {
-            // writeText pode ficar pendente (permissão não respondida): não espera mais que 1s.
+            // writeText can hang (permission not answered): wait at most 1 s.
             await Promise.race([
                 navigator.clipboard.writeText(text),
                 new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1000)),
@@ -555,7 +555,7 @@
         }
     }
 
-    // ---------- Histórico e favoritos ----------
+    // ---------- History and favorites ----------
     function addHistory(sql) {
         const list = store.get('history', []).filter((h) => h.sql !== sql);
         list.unshift({ sql, db: $('db-select').value, ts: Date.now() });
@@ -638,11 +638,11 @@
     const PAD = { db: 8, group: 30, object: 52, child: 80 };
 
     let databases = [];              // [{ name, system }]
-    const dbObjects = new Map();     // banco -> lista de objetos | { error }
+    const dbObjects = new Map();     // database -> list of objects | { error }
     const loadingDbs = new Set();
     const openDbs = new Set();
-    const openGroups = new Set();    // `${db}|${grupo}`
-    const expanded = new Set();      // `${db}|${schema}.${objeto}`
+    const openGroups = new Set();    // `${db}|${group}`
+    const expanded = new Set();      // `${db}|${schema}.${object}`
     const columnCache = new Map();
 
     const quoteId = (s) => '[' + s.replace(/\]/g, ']]') + ']';
@@ -655,7 +655,7 @@
         return span.firstChild;
     }
 
-    /** Define o banco de contexto (toolbar, status e consultas) sem mexer na árvore. */
+    /** Sets the context database (toolbar, status and queries) without touching the tree. */
     function setDb(db) {
         const sel = $('db-select');
         const tab = activeTab();
@@ -666,7 +666,7 @@
         $('sb-db').textContent = db;
     }
 
-    /** Seleciona o banco, expande-o e carrega seus objetos sob demanda. */
+    /** Selects the database, expands it and loads its objects on demand. */
     function selectDb(db) {
         setDb(db);
         openDbs.add(db);
@@ -674,7 +674,7 @@
         renderTree();
     }
 
-    /** Carrega os objetos do banco uma vez; quem chama é responsável por redesenhar a árvore. */
+    /** Loads the database's objects once; the caller is responsible for redrawing the tree. */
     async function loadObjects(db) {
         if (dbObjects.has(db) || loadingDbs.has(db)) return;
         loadingDbs.add(db);
@@ -722,7 +722,7 @@
 
     function databaseChildren(db, loaded, items, f) {
         if (loaded === undefined) {
-            loadObjects(db); // idempotente: cobre bancos abertos após "Atualizar"
+            loadObjects(db); // idempotent: covers databases opened after "Refresh"
             return [info('Loading objects…', PAD.group)];
         }
         if (!Array.isArray(loaded)) return [info('Error: ' + loaded.error, PAD.group)];
@@ -767,8 +767,7 @@
                 setDb(db);
                 if (isTable) {
                     const top = $('chk-top').checked ? Math.max(1, parseInt($('inp-top').value, 10) || 1000) : 1000;
-                    loadSql(`SELECT TOP (${top}) * FROM ${full}`);
-                    run();
+                    selectTopSql(db, o, top).then((sql) => { loadSql(sql); run(); });
                 } else {
                     insertAtCursor(o.type === 'P' ? `EXEC ${full} ` : full);
                 }
@@ -805,7 +804,24 @@
         renderTree();
     }
 
-    // ---------- Menu de contexto e ações do Object Explorer ----------
+    /** SELECT TOP n listing every column (as in SSMS) instead of *. With no known columns, it uses *. */
+    async function selectTopSql(db, o, top) {
+        const key = `${db}|${o.schema}.${o.name}`;
+        let cols = columnCache.get(key);
+        if (!cols) {
+            try {
+                const res = await api('columns', { database: db, schema: o.schema, name: o.name, type: o.type });
+                cols = res.ok ? res.columns : [];
+                if (res.ok) columnCache.set(key, cols);
+            } catch {
+                cols = [];
+            }
+        }
+        const list = cols.length ? cols.map((c) => `    ${quoteId(c.name)}`).join(',\n') : '    *';
+        return `SELECT TOP ${top}\n${list}\nFROM ${qualified(o.schema, o.name)}`;
+    }
+
+    // ---------- Context menu and Object Explorer actions ----------
     const LARGE_TABLE_ROWS = 100000;
     const qualified = (schema, name) => `${quoteId(schema)}.${quoteId(name)}`;
     const isTableLike = (o) => o.type === 'U' || o.type === 'V';
@@ -814,7 +830,7 @@
     document.body.append(ctx);
     const hideCtx = () => { ctx.hidden = true; };
 
-    /** Mostra o menu junto ao cursor; itens são { label, run } ou '-' (separador). */
+    /** Shows the menu next to the cursor; items are { label, run } or '-' (separator). */
     function showCtx(event, items) {
         event.preventDefault();
         event.stopPropagation();
@@ -829,7 +845,7 @@
         ctx.querySelector('button')?.focus();
     }
 
-    /** Diálogo modal reutilizável. Resolve com o value da ação clicada, ou null se fechado. */
+    /** Reusable modal dialog. Resolves with the value of the clicked action, or null if closed. */
     function showDialog({ title, body, actions = [{ label: 'Close', value: null }], wide = false }) {
         const dlg = $('dialog');
         $('dialog-title').textContent = title;
@@ -847,16 +863,16 @@
         });
     }
 
-    /** Abre uma nova aba no banco indicado, opcionalmente já executando. */
+    /** Opens a new tab on the given database, optionally running it right away. */
     function openQuery(db, sql, { title, execute = false, unlimited = false } = {}) {
         addTab(sql, { title, db });
         if (execute) run(undefined, { unlimited });
     }
 
-    const selectTop = (db, o) => openQuery(db, `SELECT TOP 100 * FROM ${qualified(o.schema, o.name)}`, { execute: true });
+    const selectTop = async (db, o) => openQuery(db, await selectTopSql(db, o, 100), { execute: true });
     const newQuery = (db) => openQuery(db, `USE ${quoteId(db)};\nGO\n\n`);
 
-    /** SELECT * sem TOP: pede confirmação antes de executar se a tabela for grande. */
+    /** SELECT * without TOP: asks for confirmation before running if the table is large. */
     async function selectAll(db, o) {
         let proceed = true;
         if (o.type === 'U') {
@@ -869,7 +885,7 @@
                         actions: [{ label: 'Cancel', value: false }, { label: 'Run anyway', primary: true, value: true }],
                     }) === true;
                 }
-            } catch { /* sem estimativa: segue sem aviso */ }
+            } catch { /* no estimate: proceed without a warning */ }
         }
         openQuery(db, `SELECT * FROM ${qualified(o.schema, o.name)}`, { execute: proceed, unlimited: true });
         if (!proceed) toast('Query generated but not run.');
@@ -955,7 +971,7 @@
         toast((await copyText(text)) ? `Copied: ${text}` : 'Could not copy to the clipboard.');
     }
 
-    /** Recarrega só as colunas/parâmetros do objeto. */
+    /** Reloads only the object's columns/parameters. */
     function refreshObject(db, o) {
         const key = `${db}|${o.schema}.${o.name}`;
         columnCache.delete(key);
@@ -964,12 +980,12 @@
         toast(`${o.schema}.${o.name} refreshed.`);
     }
 
-    /** Recarrega todos os objetos filhos do banco. */
+    /** Reloads all child objects of the database. */
     function refreshDatabase(db) {
         dbObjects.delete(db);
         [...columnCache.keys()].filter((k) => k.startsWith(db + '|')).forEach((k) => columnCache.delete(k));
         openDbs.add(db);
-        renderTree(); // mostra "Carregando…" e dispara o recarregamento
+        renderTree(); // shows "Loading…" and triggers the reload
         toast(`${db} refreshed.`);
     }
 
@@ -997,9 +1013,298 @@
         ];
     }
 
+
+    // ---------- Data import (CSV/JSON) ----------
+    const IMPORT_TYPES = ['nvarchar(50)', 'nvarchar(100)', 'nvarchar(255)', 'nvarchar(1000)', 'nvarchar(4000)', 'nvarchar(max)',
+        'int', 'bigint', 'smallint', 'tinyint', 'bit', 'float', 'real', 'decimal(38,0)', 'decimal(38,2)', 'decimal(38,4)',
+        'decimal(38,6)', 'decimal(38,10)', 'date', 'datetime2', 'uniqueidentifier'];
+    const IMPORT_SKIP = '';
+    const normKey = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+
+    /** Imports a CSV or JSON file into a table of the database: existing (with column mapping) or new. */
+    async function showImportDialog(db) {
+        let tables;
+        try {
+            const res = await api('objects', { database: db });
+            if (!res.ok) throw new Error(res.error.message);
+            tables = res.objects.filter((o) => o.type === 'U');
+        } catch (e) {
+            toast('Error: ' + e.message);
+            return;
+        }
+
+        const state = { fileName: '', text: '', data: null, targets: [], resumeFrom: 0, cancelled: false, busy: false, created: false };
+
+        // --- controls
+        const fileInput = el('input', { type: 'file', accept: '.csv,.tsv,.txt,.json,text/csv,application/json' });
+        const sepSelect = el('select', { 'aria-label': 'Delimiter' },
+            [['', 'Auto-detect'], [';', '; (semicolon)'], [',', ', (comma)'], ['\t', 'Tab'], ['|', '| (pipe)']]
+                .map(([v, t]) => el('option', { value: v, text: t })));
+        const headerChk = el('input', { type: 'checkbox', checked: true });
+        const csvOpts = el('div', { class: 'imp-row', hidden: true },
+            el('label', {}, 'Delimiter ', sepSelect), el('label', { class: 'check' }, headerChk, ' First row contains column names'));
+        const fileInfo = el('div', { class: 'muted imp-info' });
+
+        const modeExisting = el('input', { type: 'radio', name: 'imp-mode', value: 'existing', checked: true });
+        const modeNew = el('input', { type: 'radio', name: 'imp-mode', value: 'new' });
+        const tableSelect = el('select', { 'aria-label': 'Destination table' },
+            tables.length ? tables.map((t) => el('option', { value: `${t.schema}.${t.name}`, text: `${t.schema}.${t.name}` }))
+                : [el('option', { value: '', text: '(no tables in this database)' })]);
+        const schemaInput = el('input', { value: 'dbo', 'aria-label': 'Schema', size: 10 });
+        const nameInput = el('input', { placeholder: 'table name', 'aria-label': 'New table name', size: 24 });
+        const emptyChk = el('input', { type: 'checkbox', checked: true });
+
+        const mapBox = el('div', { class: 'imp-map' });
+        const note = el('div', { class: 'imp-note' });
+        const progress = el('progress', { max: 1, value: 0, hidden: true });
+        const status = el('div', { class: 'imp-status', role: 'status' });
+        const config = el('fieldset', { class: 'imp-config' },
+            el('h4', { text: 'Destination' }),
+            el('div', { class: 'imp-row' },
+                el('label', { class: 'check' }, modeExisting, ' Existing table '), tableSelect),
+            el('div', { class: 'imp-row' },
+                el('label', { class: 'check' }, modeNew, ' New table '), schemaInput, '.', nameInput),
+            el('label', { class: 'check' }, emptyChk, ' Treat empty values as NULL'),
+            el('h4', { text: 'Column mapping' }), mapBox, note);
+
+        const importBtn = el('button', { class: 'btn primary', text: 'Import', disabled: true });
+        const closeBtn = el('button', { class: 'btn bordered', text: 'Close' });
+
+        // --- derived state
+        const isNew = () => modeNew.checked;
+        const setNote = (msg, kind = '') => { note.className = 'imp-note ' + kind; note.textContent = msg; };
+
+        /** One <select> per file column (existing table) or an editable name + type (new table). */
+        function renderMapping() {
+            const d = state.data;
+            if (!d) { mapBox.replaceChildren(); validate(); return; }
+            const sample = (i) => [...new Set(d.rows.map((r) => r[i]).filter((v) => v !== null && v !== '').slice(0, 50))]
+                .slice(0, 3).join(' | ').slice(0, 60);
+            const rowsEls = d.columns.map((name, i) => {
+                const target = isNew()
+                    ? [el('input', { class: 'imp-name', value: name, 'aria-label': `Column name for ${name}` }),
+                        el('select', { class: 'imp-type', 'aria-label': `Type for ${name}` },
+                            [...new Set([ImportData.inferType(d.rows.map((r) => ImportData.normalizeCell(r[i], emptyChk.checked))), ...IMPORT_TYPES])]
+                                .map((t) => el('option', { value: t, text: t })))]
+                    : [el('select', { class: 'imp-target', 'aria-label': `Target column for ${name}` },
+                        el('option', { value: IMPORT_SKIP, text: '(skip)' }),
+                        state.targets.map((c) => el('option', { value: c.name, text: `${c.name} (${c.type})` })))];
+                return el('tr', {}, el('td', { text: name }), el('td', { class: 'muted', text: sample(i) }), el('td', { class: 'imp-tcell' }, target));
+            });
+            mapBox.replaceChildren(el('table', { class: 'info-table' },
+                el('thead', {}, el('tr', {}, ['File column', 'Sample values', isNew() ? 'New column (name, type)' : 'Target column'].map((h) => el('th', { text: h })))),
+                el('tbody', {}, rowsEls)));
+            if (!isNew()) autoMap();
+            for (const c of mapBox.querySelectorAll('select,input')) c.addEventListener('input', validate);
+            validate();
+        }
+
+        function autoMap() {
+            const byName = new Map(state.targets.map((c) => [c.name.toLowerCase(), c.name]));
+            const byNorm = new Map(state.targets.map((c) => [normKey(c.name), c.name]));
+            const used = new Set();
+            mapBox.querySelectorAll('tr').forEach((tr, i) => {
+                const sel = tr.querySelector('.imp-target');
+                if (!sel) return;
+                const col = state.data.columns[i - 1]; // row 0 is the header
+                const match = byName.get(col.toLowerCase()) ?? byNorm.get(normKey(col));
+                if (match && !used.has(match)) { sel.value = match; used.add(match); }
+            });
+        }
+
+        /** Reads the mapping from the screen. Returns { error } or { idx, names, create }. */
+        function plan() {
+            if (!state.data) return { error: 'Choose a CSV or JSON file.' };
+            const trs = [...mapBox.querySelectorAll('tbody tr')];
+            if (isNew()) {
+                const schema = schemaInput.value.trim();
+                const table = nameInput.value.trim();
+                if (!schema || !table) return { error: 'Enter a schema and a table name for the new table.' };
+                const names = trs.map((tr) => tr.querySelector('.imp-name').value.trim());
+                const types = trs.map((tr) => tr.querySelector('.imp-type').value);
+                if (names.some((n) => !n)) return { error: 'Every new column needs a name.' };
+                if (new Set(names.map((n) => n.toLowerCase())).size !== names.length) return { error: 'New column names must be unique.' };
+                return { schema, table, idx: names.map((_, i) => i), names, create: names.map((name, i) => ({ name, type: types[i] })) };
+            }
+            const [schema, ...rest] = tableSelect.value.split('.');
+            if (!tableSelect.value) return { error: 'Choose a destination table.' };
+            const picks = trs.map((tr) => tr.querySelector('.imp-target').value);
+            const idx = picks.flatMap((p, i) => (p === IMPORT_SKIP ? [] : [i]));
+            const names = idx.map((i) => picks[i]);
+            if (!idx.length) return { error: 'Map at least one column.' };
+            if (new Set(names).size !== names.length) return { error: 'Two file columns are mapped to the same target column.' };
+            return { schema, table: rest.join('.'), idx, names, create: null };
+        }
+
+        function validate() {
+            if (state.busy) return;
+            const p = plan();
+            const hint = [];
+            if (!p.error && !isNew()) {
+                const missing = state.targets.filter((c) => !c.nullable && !p.names.includes(c.name)).map((c) => c.name);
+                if (missing.length) hint.push(`NOT NULL columns not mapped (the import fails unless they have a default): ${missing.join(', ')}.`);
+                if (state.skipped.length) hint.push(`Identity, computed and rowversion columns are not listed: ${state.skipped.join(', ')}.`);
+            }
+            setNote(p.error || hint.join(' '), p.error ? '' : hint.length ? 'warn' : '');
+            importBtn.disabled = Boolean(p.error);
+            importBtn.textContent = state.resumeFrom ? `Resume from row ${fmt(state.resumeFrom + 1)}` : 'Import';
+        }
+
+        async function loadTargets() {
+            state.targets = [];
+            state.skipped = [];
+            if (isNew() || !tableSelect.value) return;
+            const [schema, ...rest] = tableSelect.value.split('.');
+            try {
+                const res = await api('columns', { database: db, schema, name: rest.join('.'), type: 'U' });
+                if (!res.ok) throw new Error(res.error.message);
+                const writable = (c) => !c.identity && !c.computed && !/^(timestamp|rowversion)$/i.test(c.type);
+                state.targets = res.columns.filter(writable);
+                state.skipped = res.columns.filter((c) => !writable(c)).map((c) => c.name);
+            } catch (e) {
+                setNote(`Could not read the table columns: ${e.message}`, 'err');
+            }
+        }
+
+        async function refreshAll() {
+            await loadTargets();
+            renderMapping();
+        }
+
+        function parseFile() {
+            state.data = null;
+            fileInfo.textContent = '';
+            try {
+                const isJson = /\.json$/i.test(state.fileName) || (!/\.(csv|tsv|txt)$/i.test(state.fileName) && /^\s*\[/.test(state.text));
+                csvOpts.hidden = isJson;
+                state.data = isJson
+                    ? ImportData.tableFromJson(state.text)
+                    : ImportData.tableFromCsv(state.text, { separator: sepSelect.value || undefined, header: headerChk.checked });
+                const sep = state.data.separator;
+                fileInfo.textContent = `${state.fileName}: ${fmt(state.data.rows.length)} row(s), ${fmt(state.data.columns.length)} column(s)`
+                    + (sep ? ` · delimiter: ${sep === '\t' ? 'Tab' : sep}` : '');
+                if (!nameInput.value) nameInput.value = ImportData.tableNameFromFile(state.fileName);
+            } catch (e) {
+                fileInfo.textContent = e.message;
+            }
+            state.resumeFrom = 0;
+            renderMapping();
+        }
+
+        // --- events
+        fileInput.addEventListener('change', async () => {
+            const f = fileInput.files[0];
+            if (!f) return;
+            state.fileName = f.name;
+            state.text = await f.text();
+            nameInput.value = '';
+            parseFile();
+        });
+        sepSelect.addEventListener('change', parseFile);
+        headerChk.addEventListener('change', parseFile);
+        emptyChk.addEventListener('change', renderMapping);
+        tableSelect.addEventListener('change', refreshAll);
+        modeExisting.addEventListener('change', refreshAll);
+        modeNew.addEventListener('change', refreshAll);
+        schemaInput.addEventListener('input', validate);
+        nameInput.addEventListener('input', validate);
+        nameInput.addEventListener('focus', () => { modeNew.checked = true; refreshAll(); });
+        tableSelect.addEventListener('focus', () => { if (isNew()) { modeExisting.checked = true; refreshAll(); } });
+        closeBtn.addEventListener('click', () => $('dialog').close());
+
+        importBtn.addEventListener('click', async () => {
+            const p = plan();
+            if (p.error || state.busy) return;
+            state.busy = true;
+            state.cancelled = false;
+            config.disabled = true;
+            fileInput.disabled = csvOpts.querySelectorAll('select,input').forEach((c) => { c.disabled = true; }) ?? true;
+            importBtn.disabled = true;
+            progress.hidden = false;
+            status.className = 'imp-status';
+
+            const startedAt = Date.now();
+            const rows = state.data.rows;
+            const total = rows.length;
+            const batch = Math.max(1, Math.min(1000, Math.floor(20000 / p.idx.length)));
+            let done = state.resumeFrom;
+            let failure = null;
+
+            progress.max = total;
+            progress.value = done;
+            while (done < total && !state.cancelled) {
+                const slice = rows.slice(done, done + batch)
+                    .map((r) => p.idx.map((i) => ImportData.normalizeCell(r[i], emptyChk.checked)));
+                const create = !state.created && state.resumeFrom === 0 && done === 0 ? p.create : null;
+                let res;
+                try {
+                    res = await api('import', { database: db, schema: p.schema, table: p.table, columns: p.names, rows: slice, create });
+                } catch (e) {
+                    res = { ok: false, error: { message: e.message } };
+                }
+                if (!res.ok) { failure = { from: done + 1, to: done + slice.length, message: res.error.message }; break; }
+                if (create) state.created = true;
+                done += slice.length;
+                progress.value = done;
+                status.textContent = `Imported ${fmt(done)} of ${fmt(total)} row(s)…`;
+            }
+
+            state.busy = false;
+            state.resumeFrom = done;
+            if (state.created) refreshDatabase(db);
+            const where = `${quoteId(p.schema)}.${quoteId(p.table)}`;
+            if (failure) {
+                status.className = 'imp-status err';
+                status.textContent = `Rows ${fmt(failure.from)}–${fmt(failure.to)} failed: ${failure.message} Nothing from that batch was saved; `
+                    + `${fmt(done)} row(s) were already imported into ${where}.`;
+                importBtn.disabled = false;
+                importBtn.textContent = done ? `Resume from row ${fmt(done + 1)}` : 'Import';
+                if (!done) config.disabled = false;
+            } else if (state.cancelled) {
+                status.textContent = `Stopped. ${fmt(done)} of ${fmt(total)} row(s) were imported into ${where}.`;
+            } else {
+                status.className = 'imp-status ok';
+                status.textContent = `Imported ${fmt(done)} row(s) into ${where}.`;
+                importBtn.textContent = 'Done';
+                $('dialog').close();
+                await closed; // the same <dialog> serves both modals: wait for it to close before reopening
+                const choice = await showDialog({
+                    title: 'Import completed',
+                    body: [
+                        el('p', { class: 'imp-success', text: `✔ ${fmt(done)} row(s) imported successfully.` }),
+                        el('dl', { class: 'info-grid' },
+                            el('dt', { text: 'Destination' }), el('dd', { text: `${db}.${p.schema}.${p.table}` }),
+                            el('dt', { text: 'Table' }), el('dd', { text: state.created ? 'Created by this import' : 'Existing table (rows appended)' }),
+                            el('dt', { text: 'File' }), el('dd', { text: state.fileName }),
+                            el('dt', { text: 'Columns' }), el('dd', { text: fmt(p.idx.length) }),
+                            el('dt', { text: 'Time' }), el('dd', { text: `${((Date.now() - startedAt) / 1000).toFixed(1)} s` })),
+                    ],
+                    actions: [{ label: 'Close', value: null }, { label: 'View data (SELECT TOP 100)', primary: true, value: 'view' }],
+                });
+                if (choice === 'view') selectTop(db, { schema: p.schema, name: p.table, type: 'U' });
+            }
+        });
+
+        const closed = showDialog({
+            title: `Import data into ${db}`,
+            wide: true,
+            actions: [],
+            body: [
+                el('p', { class: 'muted', text: 'Import rows from a CSV or JSON file (a JSON array of objects). Values are sent as text and converted by SQL Server, so prefer ISO dates (2026-10-09). Rows are appended; existing data is not changed.' }),
+                el('div', { class: 'imp-row' }, el('label', {}, 'File ', fileInput)),
+                csvOpts, fileInfo, config,
+                progress, status,
+            ],
+        });
+        $('dialog-actions').append(closeBtn, importBtn);
+        closed.then(() => { state.cancelled = true; });
+        refreshAll();
+    }
+
     const databaseMenu = (db) => [
         { label: 'New query', run: () => newQuery(db) },
         { label: 'View DDL (database script)', run: () => showDatabaseDdl(db) },
+        { label: 'Import data…', run: () => showImportDialog(db) },
         '-',
         { label: 'Refresh', run: () => refreshDatabase(db) },
     ];
@@ -1024,7 +1329,7 @@
         });
     }
 
-    // ---------- Inicialização ----------
+    // ---------- Initialization ----------
     async function loadDatabases() {
         const sel = $('db-select');
         const res = await api('databases');
@@ -1079,7 +1384,7 @@
             handle.addEventListener('pointercancel', up);
         });
 
-        // Teclado: setas ajustam de 16 em 16 px (Shift = 64 px); Home restaura.
+        // Keyboard: arrows adjust by 16 px (Shift = 64 px); Home resets.
         handle.addEventListener('keydown', (e) => {
             const step = e.shiftKey ? 64 : 16;
             if (e.key === 'ArrowLeft') save(apply(side.offsetWidth - step));
@@ -1163,7 +1468,7 @@
             store.set('theme', next);
         });
         $('btn-logout').addEventListener('click', async () => {
-            try { await api('logout'); } catch { /* sessão já encerrada */ }
+            try { await api('logout'); } catch { /* session already ended */ }
             location.href = `${base}/login`;
         });
 
@@ -1175,7 +1480,7 @@
             if (!m) return;
             m.size = parseInt(e.target.value, 10);
             m.page = 1;
-            if (m.res.page) loadPage(m, 1); // o servidor refaz a página com o novo tamanho
+            if (m.res.page) loadPage(m, 1); // the server rebuilds the page with the new size
             else renderResults();
         });
         let filterTimer;

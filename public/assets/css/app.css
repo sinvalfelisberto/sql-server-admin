@@ -1,4 +1,4 @@
-/* ---------- Tema ---------- */
+/* ---------- Theme ---------- */
 :root {
     --bg: #10141d;
     --panel: #141925;
@@ -68,7 +68,7 @@ svg.fill { fill: currentColor; stroke: none; }
 .muted { color: var(--muted); }
 .spacer { flex: 1; }
 
-/* ---------- Controles ---------- */
+/* ---------- Controls ---------- */
 .btn, .icon-btn, select, input:not([type=checkbox]) {
     font: inherit;
     color: var(--text);
@@ -167,7 +167,7 @@ select:focus, input:focus { outline: 1px solid var(--primary); }
 .ico.proc { color: var(--ok); }
 .ico.func { color: var(--tok-s); }
 
-/* ---------- Área principal ---------- */
+/* ---------- Main area ---------- */
 #main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
 .tabs-bar { display: flex; align-items: center; background: var(--toolbar); border-bottom: 1px solid var(--border); padding: 6px 10px 0; gap: 4px; }
@@ -204,7 +204,7 @@ select:focus, input:focus { outline: 1px solid var(--primary); }
 #splitter { height: 6px; background: var(--border); cursor: row-resize; flex: none; }
 #splitter:hover { background: var(--primary); }
 
-/* ---------- Resultados ---------- */
+/* ---------- Results ---------- */
 #results { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--bg); }
 
 .res-tabs { display: flex; align-items: center; gap: 4px; padding: 6px 10px 0; border-bottom: 1px solid var(--border); }
@@ -278,6 +278,12 @@ table.grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .login-card label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
 .login-card label.check { flex-direction: row; align-items: center; gap: 8px; }
 .login-card .btn { justify-content: center; padding: 10px; }
+.pass-wrap { position: relative; display: flex; }
+.pass-wrap input { flex: 1; min-width: 0; padding-right: 40px; }
+.pass-toggle { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.pass-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pass-toggle .eye-off, .pass-toggle[aria-pressed=true] .eye { display: none; }
+.pass-toggle[aria-pressed=true] .eye-off { display: block; }
 .alert { padding: 10px 12px; border-radius: 6px; background: rgba(239, 83, 80, .12); border: 1px solid var(--danger); color: var(--danger); font-size: 13px; }
 
 @media (max-width: 800px) {
@@ -285,7 +291,7 @@ table.grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
     .user-info { display: none; }
 }
 
-/* ---------- Object Explorer: bancos ---------- */
+/* ---------- Object Explorer: databases ---------- */
 .node.db { font-weight: 500; }
 .node.selected { background: rgba(25, 118, 242, .28); }
 .node.selected:hover { background: rgba(25, 118, 242, .36); }
@@ -296,14 +302,14 @@ table.grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
     color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .04em;
 }
 
-/* ---------- Menu de contexto ---------- */
+/* ---------- Context menu ---------- */
 .menu.ctx { position: fixed; min-width: 240px; max-width: 320px; z-index: 60; }
 .menu.ctx .item { font-size: 13.5px; }
 .menu.ctx .item:focus-visible { outline: none; background: var(--row-hover); }
 .icon-btn.small { min-width: 26px; height: 26px; }
 .icon-btn.small svg { width: 14px; height: 14px; }
 
-/* ---------- Diálogo modal ---------- */
+/* ---------- Modal dialog ---------- */
 dialog {
     width: min(560px, 92vw); padding: 0; color: var(--text); background: var(--panel);
     border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 16px 48px rgba(0, 0, 0, .5);
@@ -317,6 +323,23 @@ dialog::backdrop { background: rgba(0, 0, 0, .55); }
 .btn.bordered { border-color: var(--border); }
 .btn.bordered:hover { background: var(--row-hover); }
 
+/* Data import */
+.imp-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0; }
+.imp-row label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.imp-config { border: 0; padding: 0; margin: 0; min-width: 0; }
+.imp-config label.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; margin: 4px 0; }
+.imp-info { margin: 6px 0; font-size: 13px; }
+.imp-map { max-height: 280px; overflow: auto; }
+.imp-tcell { display: flex; gap: 8px; }
+.imp-tcell input, .imp-tcell select { min-width: 0; }
+.imp-note { margin-top: 8px; font-size: 13px; color: var(--muted); }
+.imp-note.warn { color: #e0a43a; }
+.imp-status { margin-top: 10px; font-size: 13px; }
+.imp-status.err { color: var(--danger); }
+.imp-status.ok { color: #4caf7a; }
+.imp-success { margin: 0 0 14px; font-size: 15px; color: #4caf7a; }
+dialog progress { width: 100%; margin-top: 12px; }
+
 .info-grid { display: grid; grid-template-columns: max-content 1fr; gap: 6px 24px; margin: 0; }
 .info-grid dt { color: var(--muted); }
 .info-grid dd { margin: 0; font-variant-numeric: tabular-nums; }
@@ -324,17 +347,17 @@ dialog::backdrop { background: rgba(0, 0, 0, .55); }
 .info-table th { text-align: left; padding: 6px 10px; border-bottom: 2px solid var(--primary); white-space: nowrap; font-size: 12px; }
 .info-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
 
-/* ---------- Divisor horizontal do Object Explorer ---------- */
+/* ---------- Object Explorer horizontal divider ---------- */
 #side-splitter { flex: none; width: 6px; margin-left: -3px; z-index: 5; cursor: col-resize; background: transparent; touch-action: none; }
 #side-splitter:hover, #side-splitter:focus-visible, #side-splitter.dragging { background: var(--primary); outline: none; }
 #app.no-sidebar #side-splitter { display: none; }
 body.resizing { cursor: col-resize; user-select: none; }
 @media (max-width: 800px) { #side-splitter { display: none; } }
 
-/* ---------- Barras de rolagem (seguem o tema) ---------- */
+/* ---------- Scrollbars (follow the theme) ---------- */
 * { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
 
-/* Fallback para navegadores sem scrollbar-color. */
+/* Fallback for browsers without scrollbar-color. */
 @supports not (scrollbar-color: auto) {
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }

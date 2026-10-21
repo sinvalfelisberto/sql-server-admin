@@ -5,7 +5,7 @@ namespace App\Core;
 
 final readonly class Config
 {
-    /** Variável de ambiente => [chave de configuração, tipo]. */
+    /** Environment variable => [config key, type]. */
     private const ENV_MAP = [
         'SQLWM_DEFAULT_SERVER'           => ['default_server', 'string'],
         'SQLWM_ALLOWED_SERVERS'          => ['allowed_servers', 'list'],
@@ -23,9 +23,9 @@ final readonly class Config
     }
 
     /**
-     * Precedência: config.php < config.local.php < variáveis de ambiente SQLWM_*.
+     * Precedence: config.php < config.local.php < SQLWM_* environment variables.
      *
-     * @param ?array<string, string> $env padrão: o ambiente do processo
+     * @param ?array<string, string> $env defaults to the process environment
      */
     public static function load(string $dir, ?array $env = null): self
     {
@@ -39,8 +39,8 @@ final readonly class Config
     }
 
     /**
-     * Converte variáveis SQLWM_* em chaves de configuração tipadas. Pura: variáveis
-     * ausentes, vazias ou inválidas são ignoradas.
+     * Converts SQLWM_* variables into typed config keys. Pure: missing, empty or
+     * invalid variables are ignored.
      *
      * @param array<string, mixed> $env
      */

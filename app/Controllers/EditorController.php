@@ -29,7 +29,7 @@ final class EditorController
             'bodyClass'  => '',
             'csrf'       => $this->session->csrfToken(),
             'connection' => $this->session->connection(),
-            'scripts'    => ['assets/js/xlsx.js', 'assets/js/app.js'],
+            'scripts'    => ['assets/js/xlsx.js', 'assets/js/import.js', 'assets/js/app.js'],
             'csvSeparator' => $separator === "\t" ? 'tab' : $separator,
         ]));
     }

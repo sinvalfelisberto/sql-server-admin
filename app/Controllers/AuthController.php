@@ -63,7 +63,7 @@ final class AuthController
         return Response::json(['ok' => true]);
     }
 
-    /** Testa as credenciais de verdade e descobre o banco padrão do login. */
+    /** Actually tests the credentials and discovers the login's default database. */
     private function verify(Connection $connection): Result
     {
         try {
@@ -72,7 +72,7 @@ final class AuthController
 
             return Result::ok($connection->withDatabase($database));
         } catch (PDOException $e) {
-            usleep(500_000); // desencoraja tentativas em sequência
+            usleep(500_000); // discourages back-to-back attempts
 
             return Result::err(pdo_error($e)['message']);
         }
@@ -88,6 +88,7 @@ final class AuthController
             'server'    => $server,
             'user'      => $user,
             'trust'     => $trust,
+            'scripts'   => ['assets/js/login.js'],
         ]));
     }
 }

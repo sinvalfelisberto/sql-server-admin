@@ -12,8 +12,8 @@ use PDOStatement;
 use function App\Support\take;
 
 /**
- * Executa scripts T-SQL. A parte com efeito colateral (PDO) fica aqui;
- * as transformações dos dados são funções puras (ver functions.php).
+ * Runs T-SQL scripts. The part with side effects (PDO) lives here;
+ * the data transformations are pure functions (see functions.php).
  */
 final class QueryExecutor
 {
@@ -44,7 +44,7 @@ final class QueryExecutor
                 }
             }
         } catch (PDOException $e) {
-            // Mantém o que já foi lido antes do erro, como o SSMS.
+            // Keeps what was read before the error, like SSMS.
             $error = pdo_error($e);
         }
 
@@ -52,11 +52,11 @@ final class QueryExecutor
     }
 
     /**
-     * Executa uma página (OFFSET/FETCH) de um SELECT único. Devolve null quando a consulta não
-     * pode ser paginada (script com vários lotes, SELECT INTO, TOP, UNION sem ORDER BY...) ou o
-     * servidor recusa a versão paginada; o chamador então usa execute().
+     * Runs one page (OFFSET/FETCH) of a single SELECT. Returns null when the query cannot be
+     * paginated (script with several batches, SELECT INTO, TOP, UNION without ORDER BY...) or the
+     * server rejects the paginated version; the caller then uses execute().
      *
-     * @param int $cap máximo de linhas ao todo (AUTO TOP); 0 = sem teto
+     * @param int $cap maximum rows overall (AUTO TOP); 0 = no cap
      */
     public function executePage(Connection $connection, string $database, string $sql, int $page, int $size, int $cap): ?QueryResult
     {
@@ -96,8 +96,8 @@ final class QueryExecutor
     }
 
     /**
-     * Abre um SELECT único para leitura em fluxo (exportação). Devolve [PDO, statement, colunas];
-     * mantenha o PDO vivo enquanto lê as linhas.
+     * Opens a single SELECT for streaming reads (export). Returns [PDO, statement, columns];
+     * keep the PDO alive while reading the rows.
      *
      * @return array{0:PDO,1:PDOStatement,2:list<array{name:string,type:string}>}
      * @throws PDOException|\RuntimeException
@@ -127,9 +127,9 @@ final class QueryExecutor
     }
 
     /**
-     * Linhas do statement, uma a uma, com células seguras para JSON.
+     * Rows of the statement, one by one, with JSON-safe cells.
      *
-     * @param int $max 0 = todas
+     * @param int $max 0 = all
      */
     public function streamRows(PDOStatement $stmt, int $max = 0): Generator
     {
@@ -139,13 +139,13 @@ final class QueryExecutor
         }
     }
 
-    /** Produz, em ordem, cada result set ou mensagem de linhas afetadas do lote. */
+    /** Yields, in order, each result set or affected-rows message of the batch. */
     private function runBatch(PDO $pdo, string $batch, int $limit): Generator
     {
         $stmt = $pdo->query($batch);
 
         do {
-            // PRINT e mensagens informativas (severidade <= 10) chegam em errorInfo, não como exceção.
+            // PRINT and informational messages (severity <= 10) arrive in errorInfo, not as an exception.
             yield from $this->infoMessages($stmt);
 
             if ($stmt->columnCount() > 0) {
@@ -158,7 +158,7 @@ final class QueryExecutor
         yield from $this->infoMessages($stmt);
     }
 
-    /** Mensagem informativa pendente do servidor (PRINT, avisos), se houver. */
+    /** Pending informational message from the server (PRINT, warnings), if any. */
     private function infoMessages(PDOStatement $stmt): Generator
     {
         [$state, , $text] = $stmt->errorInfo() + [null, null, null];
@@ -175,7 +175,7 @@ final class QueryExecutor
             range(0, $stmt->columnCount() - 1),
         );
 
-        // Lê limite+1 linhas: a sobra indica truncamento sem puxar o resultado inteiro.
+        // Reads limit+1 rows: the extra one signals truncation without pulling the whole result.
         $fetched = iterator_to_array(take($this->fetchRows($stmt), $limit + 1), false);
 
         return [

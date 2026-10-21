@@ -1,28 +1,28 @@
 <?php
-// Configuração padrão. Para sobrescrever valores localmente, crie config.local.php
-// retornando um array com as chaves desejadas (esse arquivo não é versionado).
+// Default configuration. To override values locally, create config.local.php
+// returning an array with the keys you want (that file is not versioned).
 return [
     'app_name'    => 'SQL Web Manager',
     'version'     => '1.0.0',
 
-    // Servidor sugerido na tela de login (ex.: "localhost,1433" ou "host:1433").
-    'default_server' => '',
+    // Server pre-filled on the login screen (e.g., "localhost,1433" or "host:1433").
+    'default_server' => 'localhost,1433',
 
-    // Lista de servidores permitidos. Vazia = qualquer servidor pode ser informado.
-    // Recomendado preencher em ambientes expostos para evitar uso como proxy de rede.
+    // Allowed servers. Empty = any server can be entered.
+    // Recommended in exposed environments, to prevent use as a network proxy.
     'allowed_servers' => [],
 
-    // Conexão
-    'trust_server_certificate' => true,  // valor inicial do checkbox no login
-    'encrypt'                  => null,  // null = padrão do driver; true/false para forçar
-    'login_timeout'            => 10,    // segundos
+    // Connection
+    'trust_server_certificate' => true,  // initial value of the login checkbox
+    'encrypt'                  => null,  // null = driver default; true/false to force it
+    'login_timeout'            => 10,    // seconds
 
-    // Execução
-    'query_timeout' => 120,    // segundos
-    'max_rows'      => 10000,  // limite rígido de linhas retornadas por resultado (por página, quando paginado)
-    'csv_separator' => ';',    // separador padrão do CSV: ";", ",", "|" ou "tab" (o usuário pode trocar na tela)
-    'export_max_rows' => 0,    // teto de linhas na exportação completa (CSV/JSON/Excel); 0 = sem teto
+    // Execution
+    'query_timeout' => 120,    // seconds
+    'max_rows'      => 10000,  // hard cap on rows returned per result (per page, when paginated)
+    'csv_separator' => ';',    // default CSV separator: ";", ",", "|" or "tab" (users can change it on screen)
+    'export_max_rows' => 0,    // row cap for the complete export (CSV/JSON/Excel); 0 = no cap
 
-    // Sessão
-    'session_timeout' => 3600, // segundos de inatividade até desconectar
+    // Session
+    'session_timeout' => 3600, // seconds of inactivity before sign-out
 ];

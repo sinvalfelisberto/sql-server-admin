@@ -4,10 +4,11 @@ declare(strict_types=1);
 use App\Controllers\AuthController;
 use App\Controllers\EditorController;
 use App\Controllers\ExplorerController;
+use App\Controllers\ImportController;
 use App\Controllers\QueryController;
 
 /**
- * Rotas como dados: [método, caminho, [Controller, ação], [middlewares em ordem]].
+ * Routes as data: [method, path, [Controller, action], [middleware in order]].
  */
 return [
     ['GET',  '/',              [EditorController::class, 'index'],     ['auth.page']],
@@ -23,4 +24,5 @@ return [
     ['POST', '/api/table-info', [ExplorerController::class, 'tableInfo'],   ['auth.api', 'csrf']],
     ['POST', '/api/execute',   [QueryController::class, 'execute'],      ['auth.api', 'csrf']],
     ['POST', '/api/export',    [QueryController::class, 'export'],       ['auth.api', 'csrf']],
+    ['POST', '/api/import',    [ImportController::class, 'import'],      ['auth.api', 'csrf']],
 ];

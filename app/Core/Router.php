@@ -9,8 +9,8 @@ use App\Http\Response;
 use function App\Support\pipeline;
 
 /**
- * Roteador declarativo. As rotas são dados:
- * [método, caminho, [Controller::class, 'acao'], [nomes de middleware]].
+ * Declarative router. Routes are data:
+ * [method, path, [Controller::class, 'action'], [middleware names]].
  */
 final class Router
 {

@@ -2,13 +2,13 @@
 declare(strict_types=1);
 
 /**
- * Geração de scripts DDL e resumo de metadados. Funções puras: recebem as linhas
- * do catálogo (sys.*) e devolvem texto/estruturas, sem tocar no banco.
+ * DDL script generation and metadata summaries. Pure functions: they receive catalog
+ * rows (sys.*) and return text/structures, without touching the database.
  */
 
 namespace App\Models;
 
-/** Linhas de sys.index_columns (uma por coluna) -> um item por índice. */
+/** Rows of sys.index_columns (one per column) -> one item per index. */
 function group_indexes(array $rows): array
 {
     $grouped = array_reduce($rows, static function (array $acc, array $r): array {
@@ -39,8 +39,8 @@ function group_indexes(array $rows): array
 }
 
 /**
- * Linhas de sys.foreign_key_columns -> uma FK por item.
- * direction: 'out' (esta tabela referencia outra) ou 'in' (é referenciada por outra).
+ * Rows of sys.foreign_key_columns -> one FK per item.
+ * direction: 'out' (this table references another) or 'in' (it is referenced by another).
  */
 function group_foreign_keys(array $rows, string $schema, string $table): array
 {
@@ -69,7 +69,7 @@ function group_foreign_keys(array $rows, string $schema, string $table): array
     return array_values($grouped);
 }
 
-/** Linha de sys.dm_db_partition_stats (agregada) -> resumo de linhas e espaço em KB. */
+/** Row of sys.dm_db_partition_stats (aggregated) -> summary of rows and space in KB. */
 function space_view(array $row): array
 {
     $reserved = (int) ($row['reserved_kb'] ?? 0);
@@ -85,7 +85,7 @@ function space_view(array $row): array
     ];
 }
 
-/** Definição de uma coluna dentro do CREATE TABLE. */
+/** Definition of one column inside the CREATE TABLE. */
 function column_definition(array $c): string
 {
     $name = quote_identifier($c['name']);
@@ -103,7 +103,7 @@ function column_definition(array $c): string
     ]));
 }
 
-/** "[a] ASC, [b] DESC" a partir das chaves de um índice. */
+/** "[a] ASC, [b] DESC" from the keys of an index. */
 function index_key_list(array $keys, bool $withOrder = true): string
 {
     return implode(', ', array_map(
@@ -112,7 +112,7 @@ function index_key_list(array $keys, bool $withOrder = true): string
     ));
 }
 
-/** Constraint PRIMARY KEY/UNIQUE declarada dentro do CREATE TABLE. */
+/** PRIMARY KEY/UNIQUE constraint declared inside the CREATE TABLE. */
 function key_constraint(array $index): string
 {
     return 'CONSTRAINT ' . quote_identifier($index['name'])
@@ -120,7 +120,7 @@ function key_constraint(array $index): string
         . $index['type'] . ' (' . index_key_list($index['keys']) . ')';
 }
 
-/** CREATE INDEX para índices que não são PK/UNIQUE constraint. */
+/** CREATE INDEX for indexes that are not PK/UNIQUE constraints. */
 function index_script(string $qualifiedTable, array $index): string
 {
     $name = quote_identifier($index['name']);
@@ -155,12 +155,12 @@ function foreign_key_script(string $qualifiedTable, array $fk): string
 }
 
 /**
- * Script completo de uma tabela: CREATE TABLE (colunas, PK, UNIQUE, CHECK),
- * índices e chaves estrangeiras, em lotes separados por GO.
+ * Complete script for a table: CREATE TABLE (columns, PK, UNIQUE, CHECK),
+ * indexes and foreign keys, in batches separated by GO.
  *
- * @param list<array> $columns linhas de sys.columns enriquecidas (ver ObjectScripter)
- * @param list<array> $indexes saída de group_indexes()
- * @param list<array> $foreignKeys saída de group_foreign_keys() (só direction 'out' entram)
+ * @param list<array> $columns enriched sys.columns rows (see ObjectScripter)
+ * @param list<array> $indexes output of group_indexes()
+ * @param list<array> $foreignKeys output of group_foreign_keys() (only direction 'out' is used)
  * @param list<array{name:string,definition:string}> $checks
  */
 function build_create_table(string $schema, string $table, array $columns, array $indexes, array $foreignKeys, array $checks): string
@@ -195,7 +195,7 @@ function build_create_table(string $schema, string $table, array $columns, array
     return implode("\nGO\n\n", $batches) . "\nGO\n";
 }
 
-/** Script de criação do banco com collation e opções ativas (arquivos MDF/LDF não incluídos). */
+/** Database creation script with collation and active options (MDF/LDF files not included). */
 function build_create_database(array $db): string
 {
     $name = quote_identifier($db['name']);

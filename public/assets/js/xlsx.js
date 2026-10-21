@@ -1,9 +1,9 @@
 /**
- * Gerador mínimo de .xlsx (Office Open XML) sem dependências.
- * Um .xlsx é um ZIP de arquivos XML; aqui o ZIP usa o método "stored" (sem compressão).
+ * Minimal .xlsx (Office Open XML) generator with no dependencies.
+ * An .xlsx is a ZIP of XML files; here the ZIP uses the "stored" method (no compression).
  *
- * Navegador: XlsxWriter.build(columns, types, rows) -> Blob
- * Node (testes): require('./xlsx.js').buildBytes(...) -> Uint8Array
+ * Browser: XlsxWriter.build(columns, types, rows) -> Blob
+ * Node (tests): require('./xlsx.js').buildBytes(...) -> Uint8Array
  */
 (function (root) {
     'use strict';
@@ -11,7 +11,7 @@
     const MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
     const XML_HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
-    const MAX_CELL_CHARS = 32767; // limite de texto por célula no Excel
+    const MAX_CELL_CHARS = 32767; // text limit per cell in Excel
     const NUMERIC_TYPE = /int|decimal|numeric|float|real|money/i;
     const DECIMAL_TYPE = /^(decimal|numeric|money|smallmoney)$/i;
     const encoder = new TextEncoder();
@@ -33,7 +33,7 @@
         return (c ^ 0xFFFFFFFF) >>> 0;
     }
 
-    /** @param {{name: string, data: Uint8Array}[]} files @returns {Uint8Array[]} partes do ZIP */
+    /** @param {{name: string, data: Uint8Array}[]} files @returns {Uint8Array[]} ZIP parts */
     function zipParts(files) {
         const now = new Date();
         const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
@@ -49,9 +49,9 @@
 
             const local = new DataView(new ArrayBuffer(30));
             local.setUint32(0, 0x04034b50, true);
-            local.setUint16(4, 20, true);       // versão mínima
-            local.setUint16(6, 0x0800, true);   // nomes em UTF-8
-            local.setUint16(8, 0, true);        // sem compressão
+            local.setUint16(4, 20, true);       // minimum version
+            local.setUint16(6, 0x0800, true);   // UTF-8 names
+            local.setUint16(8, 0, true);        // no compression
             local.setUint16(10, dosTime, true);
             local.setUint16(12, dosDate, true);
             local.setUint32(14, crc, true);
@@ -88,9 +88,9 @@
         return [...body, ...central, new Uint8Array(end.buffer)];
     }
 
-    // ---------- Planilha ----------
+    // ---------- Worksheet ----------
     const escapeXml = (s) => s
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F￾￿]/g, '') // caracteres proibidos em XML 1.0
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F￾￿]/g, '') // characters forbidden in XML 1.0
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
     /** 0 -> A, 25 -> Z, 26 -> AA ... */
@@ -104,7 +104,7 @@
         return name;
     }
 
-    /** Número JS quando é seguro (sem perder precisão); senão null e a célula vira texto. */
+    /** A JS number when it is safe (no precision loss); otherwise null and the cell becomes text. */
     function asNumber(value, type) {
         if (typeof value === 'number') return Number.isFinite(value) ? value : null;
         if (typeof value === 'string' && NUMERIC_TYPE.test(type) && /^-?\d+(\.\d+)?$/.test(value) && value.replace(/\D/g, '').length <= 15) {
@@ -121,7 +121,7 @@
     function cellXml(value, type, ref) {
         if (value === null || value === undefined) return '';
         const number = asNumber(value, type);
-        // Decimais exatos já formatados com duas casas ("30000.00") ganham o formato 0.00 do Excel.
+        // Exact decimals already formatted with two places ("30000.00") get Excel's 0.00 format.
         const style = typeof value === 'string' && DECIMAL_TYPE.test(type) && /\.\d\d$/.test(value) ? ' s="2"' : '';
         return number !== null ? `<c r="${ref}"${style}><v>${number}</v></c>` : textCell(ref, String(value));
     }
@@ -168,7 +168,7 @@
             + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
             + '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
             + '</Relationships>',
-        // estilo 0 = padrão, 1 = cabeçalho em negrito, 2 = número com duas casas (0.00)
+        // style 0 = default, 1 = bold header, 2 = number with two decimal places (0.00)
         'xl/styles.xml': `${XML_HEAD}<styleSheet xmlns="${NS}">`
             + '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'
             + '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
@@ -185,12 +185,12 @@
             .map(([name, xml]) => ({ name, data: encoder.encode(xml) }));
     }
 
-    /** @param {string[]} columns @param {string[]} types tipos SQL por coluna @param {Array<Array>} rows */
+    /** @param {string[]} columns @param {string[]} types SQL types per column @param {Array<Array>} rows */
     function build(columns, types, rows) {
         return new Blob(zipParts(files(columns, types, rows)), { type: MIME });
     }
 
-    /** Mesma saída de build(), como bytes (útil em testes). */
+    /** Same output as build(), as bytes (useful in tests). */
     function buildBytes(columns, types, rows) {
         const parts = zipParts(files(columns, types, rows));
         const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));

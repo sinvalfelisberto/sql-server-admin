@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace App\Support;
 
 /**
- * Either imutável: sucesso (ok) ou falha (err). Permite encadear validações
- * sem exceções e sem ifs aninhados.
+ * Immutable Either: success (ok) or failure (err). Lets you chain validations
+ * without exceptions and without nested ifs.
  */
 final readonly class Result
 {
@@ -28,19 +28,19 @@ final readonly class Result
         return $this->success;
     }
 
-    /** Transforma o valor de sucesso; falhas passam intactas. */
+    /** Transforms the success value; failures pass through untouched. */
     public function map(callable $fn): self
     {
         return $this->success ? self::ok($fn($this->value)) : $this;
     }
 
-    /** Encadeia uma função que também devolve Result. */
+    /** Chains a function that also returns a Result. */
     public function flatMap(callable $fn): self
     {
         return $this->success ? $fn($this->value) : $this;
     }
 
-    /** Colapsa o Result em um único valor. */
+    /** Collapses the Result into a single value. */
     public function fold(callable $onError, callable $onOk): mixed
     {
         return $this->success ? $onOk($this->value) : $onError($this->value);

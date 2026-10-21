@@ -13,7 +13,7 @@ $scripts = $data['scripts'] ?? [];
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="<?= $e($csrf) ?>">
     <meta name="base-url" content="<?= $e(rtrim($url(), '/')) ?>">
-    <title><?= $e($appName) ?><?= $title !== '' ? ' – ' . $e($title) : ' v' . $e($version) ?></title>
+    <title><?= $e($appName) ?></title>
     <script>document.documentElement.dataset.theme = (JSON.parse(localStorage.getItem('sqlwm.theme') || '"dark"'));</script>
     <link rel="stylesheet" href="<?= $e($url('assets/css/app.css')) ?>">
 </head>

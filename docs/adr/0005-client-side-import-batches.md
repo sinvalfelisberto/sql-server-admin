@@ -1,0 +1,21 @@
+# 0005 – CSV/JSON parsed in the browser and imported in atomic batches
+
+- **Status:** accepted
+- **Context:** the application needed an **Import data** action (CSV and JSON only) for a database. Each request opens a new SQL Server connection ([ADR 0002](0002-credentials-in-session.md)), so a transaction cannot span requests, and PHP limits request size and time.
+- **Decision:**
+  - The browser reads and parses the file (`import.js`), lets the user map columns or define a new table, and sends rows to `POST /api/import` in batches (up to 1000 rows, and at most about 20,000 cells per request).
+  - Each request is one transaction: optional `CREATE TABLE` plus multi-row, parameterized `INSERT`s (at most 1000 rows and 2000 parameters per statement). A failing row rolls back only its batch.
+  - After a failed batch the user can **resume** from the first row that was not saved.
+  - Cells travel as text and SQL Server converts them. New-table column types come from a closed whitelist (`import_column_type`); no SQL from the client is executed.
+  - Append only: no update, no truncate.
+- **Alternatives considered:**
+  - *Upload the file and parse it on the server:* needs `upload_max_filesize`/`post_max_size` tuning, temporary files and a CSV/JSON parser in PHP. *Inferred:* rejected to keep deployment simple ([ADR 0001](0001-no-composer-no-build.md)).
+  - *One request with every row, in a single transaction:* atomic, but limited by `post_max_size` and the request time.
+  - *`BULK INSERT`/`bcp`:* needs files on the SQL Server host and extra permissions.
+- **Consequences:**
+  - (+) Works with large files without raising PHP limits; progress and resume are possible; the file never needs to be stored on the server.
+  - (+) Only `INSERT` (and `CREATE TABLE` for new tables) permissions are needed.
+  - (−) A multi-batch import is **not atomic as a whole**; a failure partway leaves the earlier batches in the table.
+  - (−) The browser holds the whole parsed file in memory (capped at 1,000,000 rows).
+  - (−) Conversion of dates and numbers depends on SQL Server's language settings; ISO formats are the safe choice.
+  - (−) Resuming after a browser reload is not possible; the user has to remove or skip the rows already imported.

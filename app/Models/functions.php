@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 /**
- * Regras de domínio puras: sem I/O, sem estado global, sem efeitos colaterais.
- * Mesma entrada, mesma saída — por isso são testáveis sem banco.
+ * Pure domain rules: no I/O, no global state, no side effects.
+ * Same input, same output — which is why they can be tested without a database.
  */
 
 namespace App\Models;
@@ -11,13 +11,13 @@ namespace App\Models;
 use App\Support\Result;
 use PDOException;
 
-/** Delimita um identificador T-SQL: "a]b" -> "[a]]b]". */
+/** Delimits a T-SQL identifier: "a]b" -> "[a]]b]". */
 function quote_identifier(string $identifier): string
 {
     return '[' . str_replace(']', ']]', $identifier) . ']';
 }
 
-/** Valida e normaliza "host", "host\instancia", "host,porta" ou "host:porta". */
+/** Validates and normalizes "host", "host\instance", "host,port" or "host:port". */
 function normalize_server(string $server): Result
 {
     $server = trim($server);
@@ -28,7 +28,7 @@ function normalize_server(string $server): Result
         : Result::err('Invalid server name.');
 }
 
-/** Falha se houver lista de permitidos e o servidor não estiver nela. */
+/** Fails if there is an allowlist and the server is not in it. */
 function ensure_server_allowed(array $allowed, string $server): Result
 {
     if ($allowed === []) {
@@ -45,7 +45,7 @@ function ensure_server_allowed(array $allowed, string $server): Result
         : Result::err('Server not allowed.');
 }
 
-/** DSN do pdo_sqlsrv. O banco NÃO entra no DSN (é escolhido via USE) para evitar injeção de opções. */
+/** pdo_sqlsrv DSN. The database is NOT part of the DSN (it is chosen with USE) to avoid option injection. */
 function build_dsn(string $server, bool $trustCertificate, int $loginTimeout, ?bool $encrypt): string
 {
     return implode(';', array_filter([
@@ -57,7 +57,7 @@ function build_dsn(string $server, bool $trustCertificate, int $loginTimeout, ?b
     ]));
 }
 
-/** Divide o script em lotes pelo separador GO (linha isolada), como no SSMS. */
+/** Splits the script into batches on the GO separator (on its own line), as in SSMS. */
 function split_batches(string $sql): array
 {
     $parts = preg_split('/^[ \t]*GO[ \t]*(?:\d+[ \t]*)?(?:--.*)?$/mi', $sql) ?: [];
@@ -68,13 +68,13 @@ function split_batches(string $sql): array
     ));
 }
 
-/** Limite efetivo de linhas: o pedido (se > 0) limitado pelo teto configurado. */
+/** Effective row limit: the requested one (if > 0) capped by the configured ceiling. */
 function effective_limit(int $requested, int $hardMax): int
 {
     return $requested > 0 ? min($requested, $hardMax) : $hardMax;
 }
 
-/** Rótulo legível do tipo, ex.: nvarchar(100), decimal(18,2). */
+/** Readable type label, e.g. nvarchar(100), decimal(18,2). */
 function type_label(string $type, int $maxLength, int $precision, int $scale): string
 {
     $t = strtolower($type);
@@ -88,7 +88,7 @@ function type_label(string $type, int $maxLength, int $precision, int $scale): s
     };
 }
 
-/** Linha crua da consulta de colunas -> formato da API. */
+/** Raw row from the columns query -> API format. */
 function column_view(array $row): array
 {
     return [
@@ -96,16 +96,18 @@ function column_view(array $row): array
         'type'     => type_label($row['type'], (int) $row['max_length'], (int) $row['precision'], (int) $row['scale']),
         'nullable' => (bool) $row['is_nullable'],
         'pk'       => (bool) $row['is_pk'],
+        'identity' => (bool) ($row['is_identity'] ?? false),
+        'computed' => (bool) ($row['is_computed'] ?? false),
     ];
 }
 
-/** Linha crua de sys.databases -> formato da API (bancos 1..4 são de sistema). */
+/** Raw row from sys.databases -> API format (databases 1..4 are system databases). */
 function database_view(array $row): array
 {
     return ['name' => $row['name'], 'system' => (bool) $row['is_system']];
 }
 
-/** Valor de célula seguro para JSON: binário vira 0xHEX. */
+/** Cell value that is safe for JSON: binary becomes 0xHEX. */
 function safe_cell(mixed $value): mixed
 {
     return is_string($value) && !mb_check_encoding($value, 'UTF-8')
@@ -113,13 +115,13 @@ function safe_cell(mixed $value): mixed
         : $value;
 }
 
-/** Metadados do driver -> descritor de coluna da API. */
+/** Driver metadata -> API column descriptor. */
 function column_descriptor(array $meta): array
 {
     return ['name' => $meta['name'], 'type' => $meta['sqlsrv:decl_type'] ?? ''];
 }
 
-/** Remove prefixos "[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]" da mensagem. */
+/** Strips the "[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]" prefixes from the message. */
 function clean_error_message(string $message): string
 {
     return trim((string) preg_replace('/^(\[[^\]]*\])+\s*/', '', $message));
@@ -138,9 +140,9 @@ function pdo_error(PDOException $e): array
 }
 
 /**
- * Devolve $sql com tudo que não é código de nível 0 trocado por espaços (mesmo tamanho):
- * comentários, textos entre aspas, identificadores [..] e "..", e o conteúdo de parênteses.
- * Serve para procurar palavras-chave da instrução principal sem cair em subconsultas ou textos.
+ * Returns $sql with everything that is not top-level code replaced by spaces (same length):
+ * comments, quoted strings, [..] and ".." identifiers, and the contents of parentheses.
+ * Used to look for keywords of the main statement without falling into subqueries or strings.
  */
 function mask_sql(string $sql): string
 {
@@ -216,10 +218,10 @@ function mask_sql(string $sql): string
 }
 
 /**
- * Reescreve um SELECT único para devolver só uma página (OFFSET/FETCH).
- * Devolve null quando a consulta não é segura de paginar (vários comandos, SELECT INTO,
- * TOP, FOR XML/JSON, OPTION, UNION/DISTINCT sem ORDER BY...); nesse caso o chamador executa normalmente.
- * Sem ORDER BY usa (SELECT NULL): a ordem das páginas então depende do servidor.
+ * Rewrites a single SELECT to return only one page (OFFSET/FETCH).
+ * Returns null when the query is not safe to paginate (several statements, SELECT INTO,
+ * TOP, FOR XML/JSON, OPTION, UNION/DISTINCT without ORDER BY...); the caller then runs it normally.
+ * Without ORDER BY it uses (SELECT NULL): the order between pages then depends on the server.
  */
 function paginate_sql(string $sql, int $offset, int $rows): ?string
 {
@@ -247,8 +249,8 @@ function paginate_sql(string $sql, int $offset, int $rows): ?string
 }
 
 /**
- * Separador de CSV permitido: ";", ",", "|" ou tabulação (também aceita a palavra "tab").
- * Qualquer outro valor (ou null) cai em $default.
+ * Allowed CSV separator: ";", ",", "|" or tab (the word "tab" is also accepted).
+ * Any other value (or null) falls back to $default.
  */
 function csv_separator(?string $value, string $default = ';'): string
 {
@@ -258,7 +260,7 @@ function csv_separator(?string $value, string $default = ';'): string
     return in_array($value, [';', ',', '|', "\t"], true) ? $value : $default;
 }
 
-/** Célula de CSV: aspas só quando o texto contém aspas, quebra de linha ou o separador. */
+/** CSV cell: quoted only when the text contains quotes, a line break or the separator. */
 function csv_cell(mixed $value, string $separator = ';'): string
 {
     if ($value === null) {
@@ -276,7 +278,7 @@ function csv_line(array $cells, string $separator = ';'): string
     return implode($separator, array_map(static fn (mixed $cell): string => csv_cell($cell, $separator), $cells));
 }
 
-/** Nomes de coluna únicos para JSON: repetidos ganham sufixo _2, _3... */
+/** Unique column names for JSON: repeated ones get a _2, _3... suffix. */
 function unique_keys(array $names): array
 {
     $seen = [];
@@ -288,7 +290,7 @@ function unique_keys(array $names): array
     }, $names);
 }
 
-/** Nome de arquivo seguro para o cabeçalho Content-Disposition. */
+/** File name that is safe for the Content-Disposition header. */
 function safe_filename(string $name, string $fallback = 'resultado'): string
 {
     $clean = trim((string) preg_replace('/[^A-Za-z0-9._\-]+/', '_', $name), '._');
@@ -296,17 +298,17 @@ function safe_filename(string $name, string $fallback = 'resultado'): string
     return $clean === '' ? $fallback : $clean;
 }
 
-/** O tipo SQL (nome-base do driver) guarda decimais exatos? Fica de fora float/real e inteiros. */
+/** Does the SQL type (the driver's base name) hold exact decimals? float/real and integers are excluded. */
 function is_decimal_type(string $type): bool
 {
     return in_array(strtolower($type), ['decimal', 'numeric', 'money', 'smallmoney'], true);
 }
 
 /**
- * Decimal no padrão SQL para exportação: ponto como separador e no mínimo duas casas.
- * "30000.0000" -> "30000.00"; ".0000" -> "0.00"; "-.5000" -> "-0.50". Zeros à direita além da
- * segunda casa saem; casas significativas nunca são cortadas ("12.3456" continua "12.3456").
- * Valores sem parte fracionária (ex.: numeric(10,0)) e textos que não são decimais passam intactos.
+ * Decimal in the SQL standard for export: a dot as the separator and at least two decimal places.
+ * "30000.0000" -> "30000.00"; ".0000" -> "0.00"; "-.5000" -> "-0.50". Trailing zeros beyond the
+ * second decimal place are dropped; significant digits are never cut ("12.3456" stays "12.3456").
+ * Values with no fractional part (e.g., numeric(10,0)) and text that is not a decimal pass through untouched.
  */
 function format_decimal(string $value): string
 {
@@ -319,4 +321,74 @@ function format_decimal(string $value): string
     $negativeZero = $int === '0' && trim($frac, '0') === '';
 
     return ($negativeZero ? '' : $sign) . "$int.$frac";
+}
+
+/**
+ * Column type accepted when the import creates a table (closed list, no free text).
+ * Returns the normalized type or null if it is not allowed.
+ */
+function import_column_type(string $spec): ?string
+{
+    $s = strtolower(trim($spec));
+    if (in_array($s, ['int', 'bigint', 'smallint', 'tinyint', 'bit', 'float', 'real', 'date', 'datetime2', 'datetime', 'uniqueidentifier'], true)) {
+        return $s;
+    }
+    if (preg_match('/^(n?varchar)\((\d{1,4}|max)\)$/', $s, $m) === 1) {
+        $limit = $m[1] === 'nvarchar' ? 4000 : 8000;
+
+        return $m[2] === 'max' || ((int) $m[2] >= 1 && (int) $m[2] <= $limit) ? "{$m[1]}({$m[2]})" : null;
+    }
+    if (preg_match('/^decimal\((\d{1,2})\s*,\s*(\d{1,2})\)$/', $s, $m) === 1) {
+        [$precision, $scale] = [(int) $m[1], (int) $m[2]];
+
+        return $precision >= 1 && $precision <= 38 && $scale <= $precision ? "decimal($precision,$scale)" : null;
+    }
+
+    return null;
+}
+
+/** Rows per INSERT: at most 1000 (the VALUES limit) and 2000 parameters (the driver limit is 2100). */
+function insert_batch_size(int $columns): int
+{
+    return max(1, min(1000, intdiv(2000, max(1, $columns))));
+}
+
+/**
+ * INSERT with positional parameters for $rows rows.
+ *
+ * @param list<string> $columns
+ */
+function build_insert_sql(string $schema, string $table, array $columns, int $rows): string
+{
+    $tuple = '(' . implode(', ', array_fill(0, count($columns), '?')) . ')';
+
+    return 'INSERT INTO ' . quote_identifier($schema) . '.' . quote_identifier($table)
+        . ' (' . implode(', ', array_map(quote_identifier(...), $columns)) . ') VALUES '
+        . implode(', ', array_fill(0, $rows, $tuple));
+}
+
+/**
+ * CREATE TABLE for the import. Columns accept NULL. Fails (null) on a type outside the list,
+ * an empty/long name or repeated names (case-insensitive).
+ *
+ * @param list<array{name:string,type:string}> $columns
+ */
+function build_import_create_table(string $schema, string $table, array $columns): ?string
+{
+    $names = array_map(static fn (array $c): string => strtolower($c['name']), $columns);
+    if ($columns === [] || count(array_unique($names)) !== count($names)) {
+        return null;
+    }
+
+    $defs = [];
+    foreach ($columns as $c) {
+        $type = import_column_type($c['type']);
+        if ($type === null || $c['name'] === '' || strlen($c['name']) > 128) {
+            return null;
+        }
+        $defs[] = quote_identifier($c['name']) . " $type NULL";
+    }
+
+    return 'CREATE TABLE ' . quote_identifier($schema) . '.' . quote_identifier($table)
+        . " (\n    " . implode(",\n    ", $defs) . "\n)";
 }

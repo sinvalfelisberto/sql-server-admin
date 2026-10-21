@@ -5,7 +5,7 @@ namespace App\Http;
 
 use App\Models\Connection;
 
-/** Encapsula $_SESSION: o resto da aplicação nunca toca em superglobais. */
+/** Wraps $_SESSION: the rest of the application never touches superglobals. */
 final class Session
 {
     public function start(int $idleTimeout, bool $secure): void
@@ -28,7 +28,7 @@ final class Session
         }
     }
 
-    /** Sessões com formato antigo/inválido (ex.: após um upgrade) contam como deslogadas. */
+    /** Sessions with an old/invalid format (for example, after an upgrade) count as signed out. */
     public function isLoggedIn(): bool
     {
         $conn = $_SESSION['conn'] ?? null;
@@ -65,7 +65,7 @@ final class Session
         return is_string($token) && $token !== '' && hash_equals($_SESSION['csrf'] ?? '', $token);
     }
 
-    /** Libera o lock da sessão: consultas longas não bloqueiam outras requisições. */
+    /** Releases the session lock: long queries do not block other requests. */
     public function release(): void
     {
         session_write_close();

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Http;
 
-/** Resposta HTTP imutável: toda modificação devolve uma nova instância. $body pode ser uma Closure que escreve a saída aos poucos (downloads grandes). */
+/** Immutable HTTP response: every change returns a new instance. $body may be a Closure that writes the output incrementally (large downloads). */
 final readonly class Response
 {
     /** @param array<string, string> $headers */

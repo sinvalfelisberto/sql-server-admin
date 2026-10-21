@@ -5,15 +5,15 @@ namespace App\Core;
 
 use RuntimeException;
 
-/** Renderiza templates PHP simples. Os dados chegam em um único array $data (sem extract). */
+/** Renders plain PHP templates. Data arrives in a single $data array (no extract). */
 final class View
 {
-    /** @param array<string, mixed> $shared dados disponíveis em todos os templates */
+    /** @param array<string, mixed> $shared data available to every template */
     public function __construct(private readonly string $dir, private readonly array $shared = [])
     {
     }
 
-    /** Renderiza $template dentro do layout (o corpo fica em $data['content']). */
+    /** Renders $template inside the layout (the body goes in $data['content']). */
     public function render(string $template, array $data = [], string $layout = 'layout'): string
     {
         $data += $this->shared;

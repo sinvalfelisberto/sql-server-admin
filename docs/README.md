@@ -16,7 +16,7 @@ A web client for SQL Server, SSMS-style, built with plain PHP, HTML, CSS and Jav
 | Learn why something was done a certain way | [Architecture decisions (ADRs)](adr/README.md) |
 | See the change history | [CHANGELOG](../CHANGELOG.md) |
 
-The [PRD](../PRD.md) (in Portuguese) describes the product vision and roadmap. It includes items that are **not implemented yet** (see [Not available yet](user-guide.md#not-available-yet)).
+The [PRD](../PRD.md) describes the product vision and roadmap. It includes items that are **not implemented yet** (see [Not available yet](user-guide.md#not-available-yet)).
 
 ## Conventions in this documentation
 

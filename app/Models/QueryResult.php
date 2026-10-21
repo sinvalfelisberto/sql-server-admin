@@ -3,14 +3,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-/** Resultado imutável da execução de um script. */
+/** Immutable result of running a script. */
 final readonly class QueryResult
 {
     /**
      * @param list<array{columns:list<array>,rows:list<array>,truncated:bool}> $sets
      * @param list<string> $messages
      * @param ?array{message:string,number:?int,state:?string} $error
-     * @param ?array{page:int,size:int,hasMore:bool} $page presente quando o resultado é uma página paginada no servidor
+     * @param ?array{page:int,size:int,hasMore:bool} $page present when the result is a page paginated on the server
      */
     public function __construct(
         public array $sets,

@@ -20,7 +20,7 @@ Precedence: `config/config.php` < `config/config.local.php` < environment variab
 |---|---|---|---|---|
 | `app_name` | — | string | `SQL Web Manager` | Displayed name |
 | `version` | — | string | `1.0.0` | Version shown in the footer |
-| `default_server` | `SQLWM_DEFAULT_SERVER` | string | empty | Server suggested on the login screen |
+| `default_server` | `SQLWM_DEFAULT_SERVER` | string | `localhost,1433` | Server pre-filled on the login screen |
 | `allowed_servers` | `SQLWM_ALLOWED_SERVERS` | list (comma) | empty | Allowed servers. Empty = any. Accepted formats are the same as on the login screen |
 | `trust_server_certificate` | `SQLWM_TRUST_SERVER_CERTIFICATE` | bool | `true` | Initial value of the certificate checkbox |
 | `encrypt` | `SQLWM_ENCRYPT` | bool | `null` | `null` = driver default; `true`/`false` forces it |

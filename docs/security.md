@@ -29,6 +29,7 @@ The application runs **arbitrary SQL with the credentials of whoever signed in**
 | Error leakage | Unexpected exceptions go to the log; the client gets a generic message. `display_errors=Off`, `expose_php=Off` | `Application`, `docker/php.ini` |
 | Caching | JSON responses carry `Cache-Control: no-store` | `Response::json` |
 | Limits | `query_timeout`, `max_rows` (per page when paginated) and `memory_limit` bound the cost of each query | `Config`, `QueryExecutor` |
+| Import | `POST /api/import` requires a session and CSRF; table and column names are quoted identifiers, values are bound as parameters, and the types of a new table come from a closed list | `ImportController`, `DataImporter`, `import_column_type` |
 | Export | `POST /api/export` requires a session and CSRF like the other routes; the file name is sanitized (`safe_filename`) | `QueryController::export` |
 
 ## Known limitations
@@ -36,6 +37,7 @@ The application runs **arbitrary SQL with the credentials of whoever signed in**
 - **No per-user control at the application level:** there are no roles, audit trail or blocklist of commands.
 - **No rate limiting** beyond the 0.5 s delay on a failed login.
 - **Complete export has no PHP time limit and, by default, no row cap:** an authenticated user can keep the server busy exporting a huge table. Set `export_max_rows` (`SQLWM_EXPORT_MAX_ROWS`) and review `query_timeout` in shared environments.
+- **Import writes with the user's login:** it appends rows (and can create tables) wherever that login has permission; it has no row-level checks, preview of the generated SQL or undo. A multi-batch import is not atomic as a whole. Grant `INSERT`/`CREATE TABLE` only where needed.
 - **Pagination re-runs the query on every page:** pages far into large tables cost the same as the query up to that point.
 - **Clear-text password in the session:** anyone with read access to the server's session storage (`session.save_path`) can read the credentials of signed-in users. Restrict the permissions on that folder.
 - **`localStorage`:** history and favorites stay in the browser, as plain text, and can contain sensitive data typed into queries. Use a dedicated browser profile on shared machines.

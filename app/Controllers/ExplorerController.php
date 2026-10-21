@@ -12,7 +12,7 @@ use PDOException;
 
 use function App\Models\pdo_error;
 
-/** API do Object Explorer: bancos, objetos e colunas. */
+/** Object Explorer API: databases, objects and columns. */
 final class ExplorerController
 {
     public function __construct(
@@ -59,7 +59,7 @@ final class ExplorerController
         });
     }
 
-    /** Script DDL de uma tabela (CREATE TABLE) ou a definição de view/procedure/função. */
+    /** DDL script for a table (CREATE TABLE) or the definition of a view/procedure/function. */
     public function ddl(Request $request): Response
     {
         return $this->respond(function () use ($request): array {
@@ -77,7 +77,7 @@ final class ExplorerController
         });
     }
 
-    /** Script de criação do banco (collation e opções ativas). */
+    /** Database creation script (collation and active options). */
     public function databaseDdl(Request $request): Response
     {
         return $this->respond(function () use ($request): array {
@@ -88,7 +88,7 @@ final class ExplorerController
         });
     }
 
-    /** Linhas aproximadas, espaço, índices e chaves estrangeiras de uma tabela/view. */
+    /** Approximate rows, space, indexes and foreign keys of a table/view. */
     public function tableInfo(Request $request): Response
     {
         return $this->respond(function () use ($request): array {
@@ -105,7 +105,7 @@ final class ExplorerController
         });
     }
 
-    /** Executa $work e converte falhas do banco no envelope de erro da API. */
+    /** Runs $work and turns database failures into the API error envelope. */
     private function respond(callable $work): Response
     {
         try {

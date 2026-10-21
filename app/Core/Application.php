@@ -6,6 +6,7 @@ namespace App\Core;
 use App\Controllers\AuthController;
 use App\Controllers\EditorController;
 use App\Controllers\ExplorerController;
+use App\Controllers\ImportController;
 use App\Controllers\QueryController;
 use App\Http\Middleware;
 use App\Http\Request;
@@ -13,13 +14,14 @@ use App\Http\Response;
 use App\Http\Session;
 use App\Models\CatalogRepository;
 use App\Models\ConnectionFactory;
+use App\Models\DataImporter;
 use App\Models\ObjectScripter;
 use App\Models\QueryExecutor;
 use Throwable;
 
 use function App\Support\e;
 
-/** Composition root: monta as dependências e despacha a requisição. */
+/** Composition root: wires the dependencies and dispatches the request. */
 final class Application
 {
     private const SECURITY_HEADERS = [
@@ -87,6 +89,8 @@ final class Application
         $c->set(ExplorerController::class, static fn (Container $c) => new ExplorerController(
             $c->get(Session::class), $c->get(CatalogRepository::class), $c->get(ObjectScripter::class),
         ));
+        $c->set(DataImporter::class, static fn (Container $c) => new DataImporter($c->get(ConnectionFactory::class), $c->get(Config::class)));
+        $c->set(ImportController::class, static fn (Container $c) => new ImportController($c->get(Session::class), $c->get(DataImporter::class), $c->get(Config::class)));
         $c->set(QueryController::class, static fn (Container $c) => new QueryController($c->get(Session::class), $c->get(QueryExecutor::class), $c->get(Config::class)));
 
         $c->set(Router::class, function (Container $c): Router {
