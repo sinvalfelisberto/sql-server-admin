@@ -57,12 +57,27 @@ final class QueryExecutor
         $stmt = $pdo->query($batch);
 
         do {
+            // PRINT e mensagens informativas (severidade <= 10) chegam em errorInfo, não como exceção.
+            yield from $this->infoMessages($stmt);
+
             if ($stmt->columnCount() > 0) {
                 yield ['set' => $this->readSet($stmt, $limit)];
             } elseif (($affected = $stmt->rowCount()) >= 0) {
                 yield ['message' => "($affected linha(s) afetada(s))"];
             }
         } while ($stmt->nextRowset());
+
+        yield from $this->infoMessages($stmt);
+    }
+
+    /** Mensagem informativa pendente do servidor (PRINT, avisos), se houver. */
+    private function infoMessages(PDOStatement $stmt): Generator
+    {
+        [$state, , $text] = $stmt->errorInfo() + [null, null, null];
+
+        if ($state !== null && $state !== '00000' && $text !== null && $text !== '') {
+            yield ['message' => clean_error_message((string) $text)];
+        }
     }
 
     private function readSet(PDOStatement $stmt, int $limit): array

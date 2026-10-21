@@ -85,7 +85,22 @@
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    const stamp = () => new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-');
+    const ddMMyyyy = (d = new Date()) => [d.getDate(), d.getMonth() + 1].map((n) => String(n).padStart(2, '0')).join('') + d.getFullYear();
+
+    /** Nome do arquivo exportado: schema.tabela_ddMMyyyy.ext (tabela = alvo do primeiro FROM; sem FROM vira "resultado"). */
+    function exportName(sql, ext) {
+        const text = (sql ?? '').replace(/--[^\n]*|\/\*[\s\S]*?\*\//g, ' ');
+        const part = '(?:\\[[^\\]]+\\]|"[^"]+"|[\\w$#@]+)';
+        const m = new RegExp(`\\bFROM\\s+(${part}(?:\\s*\\.\\s*${part}){0,3})`, 'i').exec(text);
+        const base = m
+            ? (() => {
+                const ids = m[1].match(new RegExp(part, 'g')).map((i) => i.replace(/^[\["]|[\]"]$/g, ''));
+                const table = ids.pop();
+                return `${ids.pop() || 'dbo'}.${table}`;
+            })()
+            : 'resultado';
+        return `${base.replace(/[\\/:*?"<>|\s]+/g, '_')}_${ddMMyyyy()}.${ext}`;
+    }
 
     // ---------- Editor com realce de sintaxe ----------
     const ta = $('editor');
@@ -232,6 +247,7 @@
 
         models.set(tabId, {
             res,
+            sql,
             setIdx: 0,
             sort: null,
             filter: '',
@@ -241,7 +257,7 @@
         });
         if (tabId === activeId) {
             $('res-filter').value = '';
-            showPane(!res.ok && !res.sets.length ? 'messages' : 'results');
+            showPane(!res.sets.length ? 'messages' : 'results');
             renderResults();
         }
     }
@@ -1070,12 +1086,13 @@
             const ok = await copyText([line(d.columns), ...d.rows.map(line)].join('\n'));
             toast(ok ? `${fmt(d.rows.length)} linha(s) copiada(s).` : 'Não foi possível copiar para a área de transferência.');
         });
-        $('btn-csv').addEventListener('click', () => { const d = exportRows(); if (d) download(`resultado-${stamp()}.csv`, 'text/csv;charset=utf-8', toCsv(d)); });
+        $('btn-csv').addEventListener('click', () => { const d = exportRows(); if (d) download(exportName(currentModel().sql, 'csv'), 'text/csv;charset=utf-8', toCsv(d)); });
         $('btn-xls').addEventListener('click', () => {
             const d = exportRows();
-            if (d) download(`resultado-${stamp()}.xlsx`, XlsxWriter.MIME, XlsxWriter.build(d.columns, d.types, d.rows));
+            if (d && d.rows.length > 1048575) { toast('Excel suporta no máximo 1.048.575 linhas; use CSV.'); return; }
+            if (d) download(exportName(currentModel().sql, 'xlsx'), XlsxWriter.MIME, XlsxWriter.build(d.columns, d.types, d.rows));
         });
-        $('btn-json').addEventListener('click', () => { const d = exportRows(); if (d) download(`resultado-${stamp()}.json`, 'application/json', toJson(d)); });
+        $('btn-json').addEventListener('click', () => { const d = exportRows(); if (d) download(exportName(currentModel().sql, 'json'), 'application/json', toJson(d)); });
     }
 
     bind();
