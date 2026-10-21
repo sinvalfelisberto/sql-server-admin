@@ -12,7 +12,7 @@ docker compose --profile demo up -d  # alternativa: app + SQL Server de demonstr
 ## Testes
 
 ```bash
-php tests/run.php          # funções puras e objetos de valor: 56 verificações, sem banco
+php tests/run.php          # funções puras e objetos de valor: 79 verificações, sem banco
 node tests/xlsx.test.js    # gerador de .xlsx: 10 testes, sem banco nem navegador
 ```
 

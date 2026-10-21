@@ -19,7 +19,8 @@ return [
 
     // Execução
     'query_timeout' => 120,    // segundos
-    'max_rows'      => 10000,  // limite rígido de linhas retornadas por resultado
+    'max_rows'      => 10000,  // limite rígido de linhas retornadas por resultado (por página, quando paginado)
+    'export_max_rows' => 0,    // teto de linhas na exportação completa (CSV/JSON/Excel); 0 = sem teto
 
     // Sessão
     'session_timeout' => 3600, // segundos de inatividade até desconectar

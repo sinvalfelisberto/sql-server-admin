@@ -42,7 +42,7 @@ Para testar sem ter um SQL Server à mão, suba também o de demonstração e us
 docker compose --profile demo up -d
 ```
 
-A senha de demonstração está em `docker-compose.yml` (`MSSQL_SA_PASSWORD`, porta não publicada). Troque-a em qualquer outro uso. O Driver 18 criptografa por padrão; com certificado autoassinado, marque "Confiar no certificado do servidor" no login.
+Antes, defina `MSSQL_SA_PASSWORD` (senha forte, sua) no `.env`, que não é versionado: o compose não traz senha padrão e o SQL Server não sobe sem ela. A porta do SQL Server de demonstração não é publicada. O Driver 18 criptografa por padrão; com certificado autoassinado, marque "Confiar no certificado do servidor" no login.
 
 ### PHP local
 

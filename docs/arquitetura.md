@@ -47,7 +47,7 @@ sequenceDiagram
     R->>M: auth.api → csrf
     M->>C: QueryController::execute
     C->>C: Session::release() (libera o lock da sessão)
-    C->>D: QueryExecutor (conexão nova, USE banco, lotes)
+    C->>D: QueryExecutor (conexão nova, USE banco, lotes; com "page", OFFSET/FETCH)
     D-->>C: result sets e mensagens
     C-->>B: Response::json + cabeçalhos de segurança
 ```
@@ -117,9 +117,15 @@ flowchart LR
     X --> XL[XlsxWriter.build]
     X --> JS[toJson]
     CSV & XL & JS --> N[exportName<br/>schema.tabela_ddMMyyyy.ext] --> DL[download Blob]
+    P[Resultado paginado] -. POST /api/export .-> SRV[servidor reexecuta<br/>e grava em fluxo] --> DL
 ```
 
-A exportação acontece inteira no navegador: o servidor não participa e não há limite além do que já veio no resultado (`max_rows`).
+- **Resultado carregado inteiro** (script com `GO`, `SELECT TOP`, etc.): a exportação acontece no navegador, a partir da grade (com filtro e ordenação).
+- **Resultado paginado no servidor** (um `SELECT` único): CSV e JSON são baixados direto de `POST /api/export`, que reexecuta a consulta e escreve em fluxo (`Response` com corpo `Closure`); o Excel recebe o formato `raw` e o navegador monta o `.xlsx`.
+
+### Paginação no servidor
+
+`QueryExecutor::executePage` usa `paginate_sql` (função pura) para acrescentar `OFFSET … FETCH` ao `SELECT` único, depois de mascarar comentários, textos e parênteses (`mask_sql`) para achar as palavras-chave da instrução principal. Pede uma linha a mais para saber se há próxima página (`hasMore`). Quando a consulta não é paginável, ou o servidor recusa a versão paginada, devolve `null` e o `QueryController` cai no `execute` normal.
 
 ## Decisões
 

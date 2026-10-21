@@ -136,3 +136,149 @@ function pdo_error(PDOException $e): array
         'state'   => $info[0] ?? null,
     ];
 }
+
+/**
+ * Devolve $sql com tudo que não é código de nível 0 trocado por espaços (mesmo tamanho):
+ * comentários, textos entre aspas, identificadores [..] e "..", e o conteúdo de parênteses.
+ * Serve para procurar palavras-chave da instrução principal sem cair em subconsultas ou textos.
+ */
+function mask_sql(string $sql): string
+{
+    $n = strlen($sql);
+    $out = $sql;
+    $depth = 0;
+    $blank = static function (int $from, int $to) use (&$out): void {
+        for ($k = $from; $k < $to; $k++) {
+            if ($out[$k] !== "\n") {
+                $out[$k] = ' ';
+            }
+        }
+    };
+
+    for ($i = 0; $i < $n;) {
+        $c = $sql[$i];
+        $two = substr($sql, $i, 2);
+
+        if ($two === '--') {
+            $end = strpos($sql, "\n", $i);
+            $end = $end === false ? $n : $end;
+            $blank($i, $end);
+            $i = $end;
+        } elseif ($two === '/*') {
+            $level = 1;
+            $j = $i + 2;
+            while ($j < $n && $level > 0) {
+                $pair = substr($sql, $j, 2);
+                if ($pair === '/*') {
+                    $level++;
+                    $j += 2;
+                } elseif ($pair === '*/') {
+                    $level--;
+                    $j += 2;
+                } else {
+                    $j++;
+                }
+            }
+            $blank($i, $j);
+            $i = $j;
+        } elseif ($c === "'" || $c === '"' || $c === '[') {
+            $close = $c === '[' ? ']' : $c;
+            $j = $i + 1;
+            while ($j < $n) {
+                if ($sql[$j] === $close) {
+                    if (($sql[$j + 1] ?? '') === $close) {
+                        $j += 2;
+                        continue;
+                    }
+                    break;
+                }
+                $j++;
+            }
+            $blank($i, min($j + 1, $n));
+            $i = $j + 1;
+        } elseif ($c === '(') {
+            $depth++;
+            $out[$i] = ' ';
+            $i++;
+        } elseif ($c === ')') {
+            $depth = max(0, $depth - 1);
+            $out[$i] = ' ';
+            $i++;
+        } else {
+            if ($depth > 0 && $c !== "\n") {
+                $out[$i] = ' ';
+            }
+            $i++;
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * Reescreve um SELECT único para devolver só uma página (OFFSET/FETCH).
+ * Devolve null quando a consulta não é segura de paginar (vários comandos, SELECT INTO,
+ * TOP, FOR XML/JSON, OPTION, UNION/DISTINCT sem ORDER BY...); nesse caso o chamador executa normalmente.
+ * Sem ORDER BY usa (SELECT NULL): a ordem das páginas então depende do servidor.
+ */
+function paginate_sql(string $sql, int $offset, int $rows): ?string
+{
+    $masked = mask_sql($sql);
+    $end = strlen(rtrim($masked, " \t\r\n;"));
+    $core = substr($masked, 0, $end);
+
+    $notPageable = $core === ''
+        || str_contains($core, ';')
+        || preg_match('/^\s*(SELECT|WITH)\b/i', $core) !== 1
+        || preg_match('/\b(INTO|OPTION|TOP|OFFSET|INSERT|UPDATE|DELETE|MERGE|EXEC|EXECUTE|DECLARE)\b/i', $core) === 1
+        || preg_match('/\bFOR\s+(XML|JSON|BROWSE)\b/i', $core) === 1
+        || preg_match('/\bSELECT\s+@\w+\s*[-+*\/%&|^]?=/i', $core) === 1;
+    if ($notPageable) {
+        return null;
+    }
+
+    $hasOrder = preg_match('/\bORDER\s+BY\b/i', $core) === 1;
+    if (!$hasOrder && preg_match('/\b(UNION|INTERSECT|EXCEPT|DISTINCT)\b/i', $core) === 1) {
+        return null;
+    }
+
+    return rtrim(substr($sql, 0, $end)) . ($hasOrder ? '' : ' ORDER BY (SELECT NULL)')
+        . " OFFSET $offset ROWS FETCH NEXT $rows ROWS ONLY";
+}
+
+/** Célula de CSV (separador ";"): aspas só quando necessário. */
+function csv_cell(mixed $value): string
+{
+    if ($value === null) {
+        return '';
+    }
+    $text = is_bool($value) ? (string) (int) $value : (string) $value;
+
+    return preg_match('/[";\r\n]/', $text) === 1 ? '"' . str_replace('"', '""', $text) . '"' : $text;
+}
+
+/** @param list<mixed> $cells */
+function csv_line(array $cells): string
+{
+    return implode(';', array_map(csv_cell(...), $cells));
+}
+
+/** Nomes de coluna únicos para JSON: repetidos ganham sufixo _2, _3... */
+function unique_keys(array $names): array
+{
+    $seen = [];
+
+    return array_map(static function (string $name) use (&$seen): string {
+        $seen[$name] = ($seen[$name] ?? 0) + 1;
+
+        return $seen[$name] > 1 ? "{$name}_{$seen[$name]}" : $name;
+    }, $names);
+}
+
+/** Nome de arquivo seguro para o cabeçalho Content-Disposition. */
+function safe_filename(string $name, string $fallback = 'resultado'): string
+{
+    $clean = trim((string) preg_replace('/[^A-Za-z0-9._\-]+/', '_', $name), '._');
+
+    return $clean === '' ? $fallback : $clean;
+}

@@ -10,12 +10,14 @@ final readonly class QueryResult
      * @param list<array{columns:list<array>,rows:list<array>,truncated:bool}> $sets
      * @param list<string> $messages
      * @param ?array{message:string,number:?int,state:?string} $error
+     * @param ?array{page:int,size:int,hasMore:bool} $page presente quando o resultado é uma página paginada no servidor
      */
     public function __construct(
         public array $sets,
         public array $messages,
         public ?array $error,
         public int $elapsedMs,
+        public ?array $page = null,
     ) {
     }
 
@@ -38,6 +40,7 @@ final readonly class QueryResult
             'messages'   => $messages,
             'total_rows' => $this->totalRows(),
             'elapsed_ms' => $this->elapsedMs,
+            'page'       => $this->page,
         ];
     }
 }

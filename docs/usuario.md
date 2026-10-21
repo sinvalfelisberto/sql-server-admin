@@ -65,7 +65,17 @@ As abas, o histórico, os favoritos, o tema, o banco escolhido e o AUTO TOP fica
 
 ### AUTO TOP
 
-Com **AUTO TOP** marcado, cada result set é limitado ao número de linhas informado ao lado (padrão: 1000). Se o resultado foi cortado, a aba **Mensagens** avisa. Mesmo desmarcado, existe um teto definido pelo administrador (`max_rows`, padrão 10.000 linhas por resultado). **SELECT \* (sem TOP)** ignora o AUTO TOP e usa só esse teto.
+Com **AUTO TOP** marcado, o resultado é limitado ao número de linhas informado ao lado (padrão: 1000) **no total**, somando todas as páginas. Se o resultado foi cortado, a aba **Mensagens** avisa. **SELECT \* (sem TOP)** ignora o AUTO TOP.
+
+### Paginação no servidor
+
+Quando o que você executa é **um único `SELECT`** (pode ter `WHERE`, `JOIN`, `GROUP BY`, `ORDER BY` e CTE), o servidor devolve só uma página por vez (200 linhas por padrão, ajustável em **Exibir**) e a grade mostra **‹ Anterior** / **Próxima ›** e `Linhas 201 a 400 (há mais)`. Assim o servidor e o navegador nunca carregam o resultado inteiro de uma vez.
+
+- **Cada página reexecuta a consulta** (com `OFFSET … FETCH`). Em tabelas grandes, páginas mais ao fim custam mais.
+- **Sem `ORDER BY`, a ordem entre páginas não é garantida** pelo SQL Server: linhas podem repetir ou faltar se os dados mudarem. Para paginar de forma estável, use `ORDER BY` com uma coluna única.
+- **Ordenar pelo cabeçalho e Filtrar valem só para a página atual.** Para ordenar tudo, use `ORDER BY` na consulta.
+- Vale o `SELECT` exato que você executou, e não um recorte do resultado. Se houver texto selecionado, só ele é executado.
+- **Não é paginado** (volta o resultado inteiro, limitado por AUTO TOP e `max_rows`, como antes): scripts com `GO` ou vários comandos, `SELECT … INTO`, `SELECT TOP …` na instrução principal, `FOR XML/JSON`, `OPTION (…)`, atribuição a variável, `UNION`/`DISTINCT` sem `ORDER BY`, `EXEC` e qualquer comando que não seja `SELECT`. Se o servidor recusar a versão paginada, a consulta roda normalmente.
 
 ### Mensagens e `PRINT`
 
@@ -83,14 +93,18 @@ A aba **Mensagens** mostra o texto de `PRINT`, avisos do servidor, `(N linha(s) 
 
 - **Ordenar:** clique no cabeçalho da coluna: 1º clique ascendente, 2º descendente, 3º remove a ordenação. Trocar de result set limpa a ordenação.
 - **Filtrar:** o campo **Filtrar** mostra só as linhas em que qualquer coluna contém o texto (sem diferenciar maiúsculas); atua sobre os dados já carregados.
-- **Exibir:** linhas por página (10 a 1000, ou **Todos**).
+- **Exibir:** linhas por página (10 a 1000); o padrão é 200. Em resultado paginado no servidor, mudar o valor recarrega a primeira página. Nos demais, a paginação é só de exibição.
 - Células `NULL` aparecem como **NULL** em destaque; colunas numéricas ficam alinhadas à direita; colunas binárias aparecem como `0xHEX`.
 - O rodapé da grade mostra o intervalo exibido, o total e a navegação **‹ Anterior** / **Próxima ›**.
 - O tipo SQL da coluna aparece como dica ao passar o mouse no cabeçalho.
 
 ## Exportar
 
-Os botões da grade exportam **o resultado atual**, já com a ordenação e o filtro aplicados e **todas as páginas** (não só a página visível).
+Os botões da grade exportam o resultado da consulta:
+
+- **Resultado paginado no servidor:** o arquivo traz o **resultado completo da consulta**, não só a página visível nem o recorte do AUTO TOP. O servidor executa a consulta de novo e grava as linhas em fluxo. A ordenação e o filtro da grade **não** entram: vale a ordem da consulta (use `ORDER BY`). O download só começa quando o servidor termina de abrir a consulta; consultas grandes podem demorar e não têm teto de linhas, a menos que o administrador defina `export_max_rows`.
+- **Demais resultados (já carregados inteiros):** o arquivo traz **todas as linhas carregadas**, com a ordenação e o filtro da grade aplicados.
+- **Copiar** copia só a página atual quando o resultado é paginado.
 
 | Botão | Resultado |
 |---|---|
@@ -113,7 +127,7 @@ O nome segue o padrão `schema.tabela_ddMMyyyy.extensão`, por exemplo `Sales.Or
 
 - Colunas numéricas viram números. Valores com mais de 15 dígitos ficam como texto, para não perder precisão.
 - Textos acima de 32.767 caracteres são cortados (limite do Excel).
-- Acima de 1.048.575 linhas o botão avisa para usar CSV.
+- Acima de 1.048.575 linhas o botão avisa para usar CSV. Em resultado paginado, o navegador recebe o resultado completo para montar o arquivo, então resultados muito grandes consomem memória do navegador; prefira CSV nesses casos.
 - Nulos viram células vazias.
 
 ## O que ainda não existe

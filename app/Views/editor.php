@@ -98,8 +98,7 @@
                         <label>Exibir
                             <select id="page-size">
                                 <option>10</option><option>25</option><option>50</option>
-                                <option selected>100</option><option>500</option><option>1000</option>
-                                <option value="0">Todos</option>
+                                <option>100</option><option selected>200</option><option>500</option><option>1000</option>
                             </select>
                         </label>
                         <button class="btn export" id="btn-copy">Copiar</button>

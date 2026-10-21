@@ -26,7 +26,8 @@ Precedência: `config/config.php` < `config/config.local.php` < variáveis de am
 | `encrypt` | `SQLWM_ENCRYPT` | bool | `null` | `null` = padrão do driver; `true`/`false` força |
 | `login_timeout` | — | int (s) | `10` | Tempo para conectar |
 | `query_timeout` | `SQLWM_QUERY_TIMEOUT` | int (s) | `120` | Tempo máximo por consulta |
-| `max_rows` | `SQLWM_MAX_ROWS` | int | `10000` | Teto de linhas por result set |
+| `max_rows` | `SQLWM_MAX_ROWS` | int | `10000` | Teto de linhas por result set; em consulta paginada vale **por página** (tamanho máximo da página) |
+| `export_max_rows` | `SQLWM_EXPORT_MAX_ROWS` | int | `0` | Teto de linhas na exportação completa (CSV/JSON/Excel de resultado paginado); `0` = sem teto |
 | `session_timeout` | `SQLWM_SESSION_TIMEOUT` | int (s) | `3600` | Inatividade até desconectar |
 
 Booleanos aceitam `true/false`, `1/0`, `yes/no`, `on/off`. Em lista, separe por vírgula: `SQLWM_ALLOWED_SERVERS=srv1:1433,srv2`.
@@ -52,7 +53,7 @@ docker compose up -d
 
 - Porta padrão `8080`; altere com `SQLWM_PORT` (veja `.env.example`; copie para `.env`).
 - O contêiner tem `healthcheck` em `/login` e `no-new-privileges`.
-- SQL Server de demonstração: `docker compose --profile demo up -d`; no login use servidor `mssql`, usuário `sa` e a senha de `MSSQL_SA_PASSWORD` (padrão no `docker-compose.yml`; troque fora de testes). A porta dele não é publicada.
+- SQL Server de demonstração: `docker compose --profile demo up -d`; defina antes `MSSQL_SA_PASSWORD` (senha forte, sua) no `.env`; não há senha padrão. No login use servidor `mssql`, usuário `sa` e essa senha. A porta dele não é publicada.
 - A imagem só copia `app/`, `config/` e `public/`. Para alterar a configuração, use variáveis de ambiente.
 
 ### PHP local (desenvolvimento)
@@ -113,7 +114,8 @@ Basta substituir os arquivos (ou reconstruir a imagem: `docker compose build && 
 | CSS e JS não carregam em subpasta | `assets/` não mapeado para `public/assets/` | Aplique `deploy/iis-rewrite.xml` (IIS) ou aponte o document root para `public/` |
 | `Token CSRF inválido. Recarregue a página.` | Sessão expirada, cookies bloqueados ou site em iframe/outro domínio | Recarregue a página e faça login de novo |
 | `Sessão expirada.` ao usar o editor | Inatividade maior que `session_timeout` | Faça login novamente |
-| Resultado "limitado às primeiras N linhas" | AUTO TOP ou `max_rows` | Aumente o AUTO TOP, ou `max_rows` (teto do servidor) |
+| Resultado "limitado às primeiras N linhas" | AUTO TOP ou `max_rows` (em resultado que não é paginado) | Aumente o AUTO TOP, ou `max_rows` (teto do servidor) |
+| Exportação completa demora ou satura o servidor | Resultado paginado exporta sem teto | Defina `SQLWM_EXPORT_MAX_ROWS`; revise `query_timeout` |
 | Consulta cai por tempo | Excedeu `query_timeout` | Otimize a consulta ou aumente `SQLWM_QUERY_TIMEOUT` |
 | **Ver DDL** diz "Definição indisponível" | Objeto criptografado, inexistente ou sem `VIEW DEFINITION` | Conceda a permissão ao login |
 | Botão **Excel** avisa limite de linhas | Mais de 1.048.575 linhas | Exporte em CSV |

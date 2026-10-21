@@ -3,13 +3,13 @@ declare(strict_types=1);
 
 namespace App\Http;
 
-/** Resposta HTTP imutável: toda modificação devolve uma nova instância. */
+/** Resposta HTTP imutável: toda modificação devolve uma nova instância. $body pode ser uma Closure que escreve a saída aos poucos (downloads grandes). */
 final readonly class Response
 {
     /** @param array<string, string> $headers */
     public function __construct(
         public int $status = 200,
-        public string $body = '',
+        public string|\Closure $body = '',
         public array $headers = [],
     ) {
     }
@@ -44,6 +44,11 @@ final readonly class Response
         http_response_code($this->status);
         foreach ($this->headers as $name => $value) {
             header("$name: $value");
+        }
+        if ($this->body instanceof \Closure) {
+            ($this->body)();
+
+            return;
         }
         echo $this->body;
     }

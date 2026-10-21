@@ -9,7 +9,7 @@ A aplicação executa **SQL arbitrário com as credenciais de quem fez login**. 
 3. **Menor privilégio:** crie logins com só as permissões necessárias. Sem `VIEW DEFINITION`, o **Ver DDL** de procedures e views não funciona.
 4. **Exponha só o necessário.** Com `public/` como document root, `app/` e `config/` ficam inacessíveis. Sem essa opção, use o `index.php` da raiz e as regras de [IIS](configuracao.md#iis-projeto-inteiro-em-uma-pasta), que mandam tudo, exceto `assets/`, para o front controller.
 5. Restrinja o acesso de rede (VPN, firewall, allowlist de IP) quando possível.
-6. Altere a senha de demonstração do `docker-compose.yml` em qualquer uso fora de testes.
+6. O `docker-compose.yml` não traz senha: defina `MSSQL_SA_PASSWORD` no `.env` (não versionado) para usar o perfil `demo`, e nunca versione esse arquivo.
 
 ## O que a aplicação faz
 

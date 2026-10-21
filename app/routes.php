@@ -22,4 +22,5 @@ return [
     ['POST', '/api/db-ddl',     [ExplorerController::class, 'databaseDdl'], ['auth.api', 'csrf']],
     ['POST', '/api/table-info', [ExplorerController::class, 'tableInfo'],   ['auth.api', 'csrf']],
     ['POST', '/api/execute',   [QueryController::class, 'execute'],      ['auth.api', 'csrf']],
+    ['POST', '/api/export',    [QueryController::class, 'export'],       ['auth.api', 'csrf']],
 ];

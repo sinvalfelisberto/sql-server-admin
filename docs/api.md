@@ -142,7 +142,9 @@ Executa um script T-SQL.
 |---|---|---|---|
 | `sql` | string | — | Script. `GO` em linha isolada separa lotes |
 | `database` | string | banco do login | Banco em que o script roda |
-| `limit` | int | 0 | Máximo de linhas **por result set**. `0` ou ausente = o teto do servidor; valores acima de `max_rows` são reduzidos a `max_rows` |
+| `limit` | int | 0 | Máximo de linhas **por result set**. `0` ou ausente = o teto do servidor; valores acima de `max_rows` são reduzidos a `max_rows`. Com `page`, vira o teto **total** (AUTO TOP) somando as páginas; `0` = sem teto |
+| `page` | int | — | Pede paginação no servidor (1 = primeira página). Só vale para um único `SELECT` paginável; senão a resposta é a normal, sem o campo `page` |
+| `page_size` | int | 200 | Linhas por página; limitado a `max_rows` |
 
 ```json
 {
@@ -160,11 +162,30 @@ Executa um script T-SQL.
 - `rows` é uma lista de listas, na ordem de `columns`. Binários viram `"0xHEX"`. `int`, `float` e afins vêm como número JSON; `decimal`, `money` e `bigint` vêm como **string** (ex.: `"1.50"`, `"9007199254740993"`), para não perder precisão. `NULL` vem como `null`.
 - `columns[].type` é o nome-base do tipo no driver (`decimal`, `nvarchar`, `varbinary`), **sem** tamanho ou precisão, diferente de `/api/columns`.
 - `truncated: true` indica que o result set tinha mais linhas que o limite.
+- `page` é `null` (resultado normal) ou `{ "page": 2, "size": 200, "hasMore": true }` quando a consulta foi paginada. Nesse caso `sets` tem um único result set com no máximo `size` linhas e `truncated` é sempre `false`; use `hasMore` para saber se há próxima página. A consulta é reexecutada com `OFFSET … FETCH` a cada chamada; sem `ORDER BY` a ordem entre páginas não é garantida. Se a consulta não for paginável ou o servidor recusar a versão paginada, o campo `page` vem `null` e a execução é a normal.
 - `messages` reúne `PRINT`, avisos e `(N linha(s) afetada(s))`. Sem result set, sem mensagem e sem erro, o servidor devolve `["Comando(s) concluído(s) com sucesso."]`.
 - Se um lote falha, `ok` é `false` e `error` traz `message`/`number`/`state`. O que foi lido **antes do lote com erro** (lotes anteriores separados por `GO`, ou result sets anteriores no mesmo lote, quando o erro ocorre em tempo de execução) permanece em `sets` e `messages`. Erros de compilação, como `SELECT 1; SELECT coluna_inexistente`, derrubam o lote inteiro e nada dele é executado. O HTTP continua 200.
 - Comandos DDL e `INSERT` sem result set geram mensagens `(N linha(s) afetada(s))`; para DDL o `N` é 0.
 - O tempo máximo de cada consulta é `query_timeout` (padrão 120 s). O script PHP recebe esse valor + 30 s.
 - O script roda sem transação implícita e **com as permissões do login**: `INSERT`/`UPDATE`/`DDL` são executados de verdade.
+
+### `POST /api/export`
+
+Exporta o resultado **completo** de um `SELECT` único, reexecutando a consulta e escrevendo a resposta em fluxo (sem montar o arquivo na memória). Aceita formulário (`application/x-www-form-urlencoded`, com o campo `csrf`) ou JSON (com `X-CSRF-Token`).
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `sql` | string | Um único comando; `GO` ou vários lotes são recusados |
+| `database` | string | Banco |
+| `format` | string | `csv` (padrão), `json` ou `raw` |
+| `filename` | string | Nome do arquivo sem extensão (`csv` e `json`); caracteres fora de `A-Za-z0-9._-` viram `_` |
+| `limit` | int | Máximo de linhas; `0` = sem teto (ou `export_max_rows`, se definido, que sempre prevalece como máximo) |
+
+- `csv`: UTF-8 com BOM, separador `;`, `CRLF`, mesma regra de aspas da exportação do navegador; `Content-Disposition: attachment`.
+- `json`: lista de objetos (colunas repetidas ganham sufixo `_2`, `_3`); `Content-Disposition: attachment`.
+- `raw`: `{ "columns": ["Id"], "types": ["bigint"], "rows": [["1"], ...] }`, usado pelo navegador para montar o `.xlsx`.
+- Se a consulta falha antes de começar a escrever, a resposta é o envelope de erro normal (`{"ok":false,"error":{...}}`). Um erro **durante** a leitura interrompe o arquivo, que fica incompleto.
+- O PHP roda sem limite de tempo nesta rota (`set_time_limit(0)`); o `query_timeout` continua valendo para a execução da consulta no SQL Server.
 
 ## Exemplo com curl
 

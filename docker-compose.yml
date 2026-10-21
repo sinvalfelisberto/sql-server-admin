@@ -13,6 +13,7 @@ services:
       SQLWM_ENCRYPT: ${SQLWM_ENCRYPT:-}
       SQLWM_TRUST_SERVER_CERTIFICATE: ${SQLWM_TRUST_SERVER_CERTIFICATE:-}
       SQLWM_MAX_ROWS: ${SQLWM_MAX_ROWS:-}
+      SQLWM_EXPORT_MAX_ROWS: ${SQLWM_EXPORT_MAX_ROWS:-}
       SQLWM_QUERY_TIMEOUT: ${SQLWM_QUERY_TIMEOUT:-}
       SQLWM_SESSION_TIMEOUT: ${SQLWM_SESSION_TIMEOUT:-}
     security_opt:
@@ -26,8 +27,9 @@ services:
       start_period: 10s
 
   # SQL Server de demonstração: docker compose --profile demo up -d
-  # Na tela de login use servidor "mssql", usuário "sa" e a senha abaixo.
-  # Só para testes: a porta não é publicada, mas troque a senha em qualquer outro uso.
+  # Na tela de login use servidor "mssql", usuário "sa" e a senha definida em MSSQL_SA_PASSWORD.
+  # A senha NÃO tem valor padrão: defina-a no .env (não versionado) antes de subir o perfil demo.
+  # O SQL Server exige senha forte (8+ caracteres, com 3 de 4: maiúscula, minúscula, número, símbolo).
   mssql:
     profiles: ["demo"]
     image: mcr.microsoft.com/mssql/server:2022-latest

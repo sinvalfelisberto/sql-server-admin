@@ -17,7 +17,12 @@ use function App\Models\effective_limit;
 use function App\Models\ensure_server_allowed;
 use function App\Models\group_foreign_keys;
 use function App\Models\group_indexes;
+use function App\Models\csv_line;
+use function App\Models\mask_sql;
 use function App\Models\normalize_server;
+use function App\Models\paginate_sql;
+use function App\Models\safe_filename;
+use function App\Models\unique_keys;
 use function App\Models\quote_identifier;
 use function App\Models\safe_cell;
 use function App\Models\space_view;
@@ -143,6 +148,35 @@ check('space_view vazio (view)', space_view(['row_count' => null, 'reserved_kb' 
 check('fromEnv tipado', Config::fromEnv(['SQLWM_MAX_ROWS' => '500', 'SQLWM_ENCRYPT' => 'true', 'SQLWM_ALLOWED_SERVERS' => 'a, b ,,c', 'SQLWM_DEFAULT_SERVER' => ' h,1433 ']), ['default_server' => 'h,1433', 'allowed_servers' => ['a', 'b', 'c'], 'encrypt' => true, 'max_rows' => 500]);
 check('fromEnv ignora vazio e inválido', Config::fromEnv(['SQLWM_MAX_ROWS' => 'abc', 'SQLWM_ENCRYPT' => '', 'OUTRA' => 'x']), []);
 check('fromEnv bool falso', Config::fromEnv(['SQLWM_TRUST_SERVER_CERTIFICATE' => 'false']), ['trust_server_certificate' => false]);
+
+
+// --- Paginação no servidor
+$page = static fn (string $sql): ?string => paginate_sql($sql, 200, 201);
+check('paginate sem ORDER BY', $page('SELECT * FROM t;'), 'SELECT * FROM t ORDER BY (SELECT NULL) OFFSET 200 ROWS FETCH NEXT 201 ROWS ONLY');
+check('paginate com ORDER BY', $page("SELECT a FROM t ORDER BY a DESC\n"), "SELECT a FROM t ORDER BY a DESC OFFSET 200 ROWS FETCH NEXT 201 ROWS ONLY");
+check('paginate ignora comentário final', $page("SELECT a FROM t -- fim\n"), 'SELECT a FROM t ORDER BY (SELECT NULL) OFFSET 200 ROWS FETCH NEXT 201 ROWS ONLY');
+check('paginate CTE', str_ends_with((string) $page('WITH x AS (SELECT 1 a ORDER BY a) SELECT * FROM x'), 'ORDER BY (SELECT NULL) OFFSET 200 ROWS FETCH NEXT 201 ROWS ONLY'), true);
+check('paginate ORDER BY em OVER não conta', str_contains((string) $page('SELECT ROW_NUMBER() OVER (ORDER BY a) r FROM t'), 'ORDER BY (SELECT NULL)'), true);
+check('paginate texto com ORDER BY não conta', str_contains((string) $page("SELECT 'order by x' FROM t"), 'ORDER BY (SELECT NULL)'), true);
+check('paginate TOP recusa', $page('SELECT TOP 10 * FROM t'), null);
+check('paginate TOP em subconsulta ok', $page('SELECT * FROM (SELECT TOP 5 a FROM t ORDER BY a) q') !== null, true);
+check('paginate INTO recusa', $page('SELECT * INTO #x FROM t'), null);
+check('paginate vários comandos recusa', $page('SELECT 1; SELECT 2'), null);
+check('paginate INSERT recusa', $page('INSERT t VALUES (1)'), null);
+check('paginate EXEC recusa', $page('EXEC sp_who'), null);
+check('paginate atribuição recusa', $page('SELECT @a = 1'), null);
+check('paginate UNION sem ORDER BY recusa', $page('SELECT 1 UNION SELECT 2'), null);
+check('paginate DISTINCT sem ORDER BY recusa', $page('SELECT DISTINCT a FROM t'), null);
+check('paginate FOR JSON recusa', $page('SELECT a FROM t FOR JSON AUTO'), null);
+check('paginate vazio recusa', $page('  ; '), null);
+check('mask_sql mantém tamanho', strlen(mask_sql("SELECT 'a' /* x */ , [b c] -- z\nFROM (SELECT 1) q")), strlen("SELECT 'a' /* x */ , [b c] -- z\nFROM (SELECT 1) q"));
+
+// --- Exportação em fluxo
+check('csv_line aspas e nulos', csv_line(['a;b', null, 'x"y', 3, "l1\nl2", 'ok']), '"a;b";;"x""y";3;"l1' . "\n" . 'l2";ok');
+check('unique_keys', unique_keys(['a', 'b', 'a', 'a']), ['a', 'b', 'a_2', 'a_3']);
+check('safe_filename', safe_filename('Sales.Orders_21102026'), 'Sales.Orders_21102026');
+check('safe_filename perigoso', safe_filename('../a b"c'), 'a_b_c');
+check('safe_filename vazio', safe_filename('..'), 'resultado');
 
 echo $failures === 0 ? "OK: $total verificações passaram.\n" : "$failures de $total verificações falharam.\n";
 exit($failures === 0 ? 0 : 1);

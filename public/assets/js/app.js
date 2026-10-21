@@ -236,9 +236,12 @@
         const limit = !unlimited && $('chk-top').checked ? Math.max(1, parseInt($('inp-top').value, 10) || 1000) : 0;
         setRunning(true);
 
+        const size = parseInt($('page-size').value, 10);
+        const req = { sql, database: $('db-select').value, limit };
         let res;
         try {
-            res = await api('execute', { sql, database: $('db-select').value, limit });
+            // "page" pede paginação no servidor (só vale para um SELECT único; senão volta o resultado inteiro).
+            res = await api('execute', { ...req, page: 1, page_size: size });
         } catch (e) {
             res = { ok: false, error: { message: e.message }, sets: [], messages: [], total_rows: 0, elapsed_ms: 0 };
         }
@@ -248,11 +251,12 @@
         models.set(tabId, {
             res,
             sql,
+            req,
             setIdx: 0,
             sort: null,
             filter: '',
             page: 1,
-            size: parseInt($('page-size').value, 10),
+            size,
             view: null,
         });
         if (tabId === activeId) {
@@ -260,6 +264,23 @@
             showPane(!res.sets.length ? 'messages' : 'results');
             renderResults();
         }
+    }
+
+    /** Resultado paginado no servidor: carrega outra página repetindo a consulta. */
+    async function loadPage(m, page) {
+        if (running) return;
+        setRunning(true);
+        try {
+            const res = await api('execute', { ...m.req, page, page_size: m.size });
+            if (!res.ok || !res.page) { toast(res.error ? res.error.message : 'Não foi possível carregar a página.'); return; }
+            Object.assign(m, { res, sort: null, view: null, page: 1 });
+        } catch (e) {
+            toast(e.message);
+            return;
+        } finally {
+            setRunning(false);
+        }
+        renderResults();
     }
 
     // ---------- Resultados ----------
@@ -318,7 +339,9 @@
         }
 
         const rows = m.view ?? computeView(m);
-        const size = m.size || rows.length || 1;
+        const paged = m.res.page; // página já recortada pelo servidor
+        const size = paged ? rows.length || 1 : m.size || rows.length || 1;
+        const rowBase = paged ? (paged.page - 1) * paged.size : 0;
         const pages = Math.max(1, Math.ceil(rows.length / size));
         m.page = Math.min(m.page, pages);
         const slice = rows.slice((m.page - 1) * size, m.page * size);
@@ -340,7 +363,7 @@
 
         const frag = document.createDocumentFragment();
         for (const { r, i } of slice) {
-            const tr = el('tr', {}, el('td', { class: 'rn', text: i + 1 }));
+            const tr = el('tr', {}, el('td', { class: 'rn', text: rowBase + i + 1 }));
             r.forEach((v, c) => {
                 if (v === null) tr.append(el('td', {}, el('span', { class: 'null', text: 'NULL' })));
                 else tr.append(el('td', { class: numCols[c] ? 'num' : '', title: String(v), text: String(v) }));
@@ -352,13 +375,29 @@
 
         const from = rows.length ? (m.page - 1) * size + 1 : 0;
         const to = Math.min(m.page * size, rows.length);
-        pager.replaceChildren(
-            el('span', { text: `Mostrando ${fmt(from)} a ${fmt(to)} de ${fmt(rows.length)} registros` + (m.filter ? ` (filtrado de ${fmt(set.rows.length)})` : '') }),
-            el('span', { class: 'spacer' }),
-            el('button', { text: '‹ Anterior', disabled: m.page <= 1, onclick: () => { m.page--; renderResults(); } }),
-            el('span', { text: `${m.page} / ${pages}` }),
-            el('button', { text: 'Próxima ›', disabled: m.page >= pages, onclick: () => { m.page++; renderResults(); } }),
-        );
+        if (paged) {
+            $('res-filter').title = 'Filtra só as linhas desta página';
+            pager.replaceChildren(
+                el('span', { text: rows.length
+                    ? `Linhas ${fmt(rowBase + 1)} a ${fmt(rowBase + rows.length)}${paged.hasMore ? ' (há mais)' : ''}`
+                        + (m.filter ? ` · filtro: ${fmt(rows.length)} de ${fmt(set.rows.length)} nesta página` : '')
+                    : 'Nenhuma linha nesta página.',
+                title: 'A consulta é executada de novo a cada página; ordenação e filtro valem só para a página atual.' }),
+                el('span', { class: 'spacer' }),
+                el('button', { text: '‹ Anterior', disabled: paged.page <= 1 || running, onclick: () => loadPage(m, paged.page - 1) }),
+                el('span', { text: `Página ${fmt(paged.page)}` }),
+                el('button', { text: 'Próxima ›', disabled: !paged.hasMore || running, onclick: () => loadPage(m, paged.page + 1) }),
+            );
+        } else {
+            $('res-filter').title = '';
+            pager.replaceChildren(
+                el('span', { text: `Mostrando ${fmt(from)} a ${fmt(to)} de ${fmt(rows.length)} registros` + (m.filter ? ` (filtrado de ${fmt(set.rows.length)})` : '') }),
+                el('span', { class: 'spacer' }),
+                el('button', { text: '‹ Anterior', disabled: m.page <= 1, onclick: () => { m.page--; renderResults(); } }),
+                el('span', { text: `${m.page} / ${pages}` }),
+                el('button', { text: 'Próxima ›', disabled: m.page >= pages, onclick: () => { m.page++; renderResults(); } }),
+            );
+        }
         updateStatus(m);
     }
 
@@ -379,7 +418,9 @@
         const { res } = m;
         res.messages.forEach((t) => lines.push(el('div', { class: 'msg', text: t })));
         res.sets.forEach((s, i) => {
-            lines.push(el('div', { class: 'msg', text: `(${fmt(s.rows.length)} linha(s) retornada(s)${res.sets.length > 1 ? ' no resultado ' + (i + 1) : ''})` }));
+            lines.push(el('div', { class: 'msg', text: res.page
+                ? `Página ${fmt(res.page.page)}: ${fmt(s.rows.length)} linha(s) (consulta paginada no servidor, ${fmt(res.page.size)} por página).`
+                : `(${fmt(s.rows.length)} linha(s) retornada(s)${res.sets.length > 1 ? ' no resultado ' + (i + 1) : ''})` }));
             if (s.truncated) {
                 lines.push(el('div', { class: 'msg err', text: `Resultado ${i + 1} limitado às primeiras ${fmt(s.rows.length)} linhas.` }));
             }
@@ -395,7 +436,7 @@
 
     function updateStatus(m) {
         $('sb-db').textContent = $('db-select').value;
-        $('sb-rows').textContent = m ? `▦ ${fmt(m.res.total_rows)} linha(s)` : '';
+        $('sb-rows').textContent = m ? `▦ ${m.res.page ? `pág. ${fmt(m.res.page.page)} · ` : ''}${fmt(m.res.total_rows)} linha(s)` : '';
         $('sb-time').textContent = m ? `◔ ${fmt(m.res.elapsed_ms)} ms` : '';
     }
 
@@ -406,6 +447,46 @@
         if (!set) { toast('Não há resultados para exportar.'); return null; }
         const rows = (m.view ?? computeView(m)).map(({ r }) => r);
         return { columns: set.columns.map((c) => c.name), types: set.columns.map((c) => c.type), rows };
+    }
+
+    /** Resultado paginado no servidor? Então a exportação reexecuta a consulta e traz tudo, não só a página. */
+    const pagedModel = () => { const m = currentModel(); return m && m.res.page ? m : null; };
+
+    let exportFrame;
+    /** Download em fluxo: um formulário para um iframe oculto; o navegador grava direto, sem montar o arquivo na memória. */
+    function serverDownload(m, format) {
+        if (!exportFrame) {
+            exportFrame = el('iframe', { name: 'export-frame', hidden: true, title: 'Exportação' });
+            exportFrame.addEventListener('load', () => {
+                // Só dispara quando o servidor respondeu com uma página (erro) em vez de um arquivo.
+                let text = '';
+                try { text = exportFrame.contentDocument.body.textContent.trim(); } catch { /* sem acesso */ }
+                try { toast(JSON.parse(text).error.message); } catch { /* download normal */ }
+            });
+            document.body.append(exportFrame);
+        }
+        const fields = {
+            csrf, sql: m.req.sql, database: m.req.database, format,
+            filename: exportName(m.req.sql, format).replace(/\.[^.]+$/, ''),
+        };
+        const form = el('form', { method: 'post', action: `${base}/api/export`, target: 'export-frame', hidden: true },
+            Object.entries(fields).map(([name, value]) => el('input', { type: 'hidden', name, value })));
+        document.body.append(form);
+        form.submit();
+        form.remove();
+        toast('Exportando o resultado completo: o download começa quando a consulta terminar.');
+    }
+
+    async function serverXlsx(m) {
+        toast('Gerando o Excel com o resultado completo…');
+        try {
+            const data = await api('export', { sql: m.req.sql, database: m.req.database, format: 'raw', limit: 1048576 });
+            if (data.ok === false) { toast(data.error.message); return; }
+            if (data.rows.length > 1048575) { toast('Excel suporta no máximo 1.048.575 linhas; use CSV.'); return; }
+            download(exportName(m.req.sql, 'xlsx'), XlsxWriter.MIME, XlsxWriter.build(data.columns, data.types, data.rows));
+        } catch (e) {
+            toast(`Falha na exportação: ${e.message}`);
+        }
     }
 
     function toCsv({ columns, rows }) {
@@ -1068,7 +1149,11 @@
 
         $('page-size').addEventListener('change', (e) => {
             const m = currentModel();
-            if (m) { m.size = parseInt(e.target.value, 10); m.page = 1; renderResults(); }
+            if (!m) return;
+            m.size = parseInt(e.target.value, 10);
+            m.page = 1;
+            if (m.res.page) loadPage(m, 1); // o servidor refaz a página com o novo tamanho
+            else renderResults();
         });
         let filterTimer;
         $('res-filter').addEventListener('input', (e) => {
@@ -1084,15 +1169,17 @@
             if (!d) return;
             const line = (r) => r.map((v) => (v === null ? '' : String(v).replace(/[\t\r\n]+/g, ' '))).join('\t');
             const ok = await copyText([line(d.columns), ...d.rows.map(line)].join('\n'));
-            toast(ok ? `${fmt(d.rows.length)} linha(s) copiada(s).` : 'Não foi possível copiar para a área de transferência.');
+            toast(ok ? `${fmt(d.rows.length)} linha(s) copiada(s)${currentModel().res.page ? ' (só esta página)' : ''}.` : 'Não foi possível copiar para a área de transferência.');
         });
-        $('btn-csv').addEventListener('click', () => { const d = exportRows(); if (d) download(exportName(currentModel().sql, 'csv'), 'text/csv;charset=utf-8', toCsv(d)); });
+        $('btn-csv').addEventListener('click', () => { const pm = pagedModel(); if (pm) { serverDownload(pm, 'csv'); return; } const d = exportRows(); if (d) download(exportName(currentModel().sql, 'csv'), 'text/csv;charset=utf-8', toCsv(d)); });
         $('btn-xls').addEventListener('click', () => {
+            const pm = pagedModel();
+            if (pm) { serverXlsx(pm); return; }
             const d = exportRows();
             if (d && d.rows.length > 1048575) { toast('Excel suporta no máximo 1.048.575 linhas; use CSV.'); return; }
             if (d) download(exportName(currentModel().sql, 'xlsx'), XlsxWriter.MIME, XlsxWriter.build(d.columns, d.types, d.rows));
         });
-        $('btn-json').addEventListener('click', () => { const d = exportRows(); if (d) download(exportName(currentModel().sql, 'json'), 'application/json', toJson(d)); });
+        $('btn-json').addEventListener('click', () => { const pm = pagedModel(); if (pm) { serverDownload(pm, 'json'); return; } const d = exportRows(); if (d) download(exportName(currentModel().sql, 'json'), 'application/json', toJson(d)); });
     }
 
     bind();
