@@ -2,6 +2,10 @@
 
 Cliente web para SQL Server (estilo SSMS) em PHP, HTML, CSS e JavaScript puros, sem dependências de front-end nem de Composer.
 
+## Documentação
+
+A documentação completa está em [`docs/`](docs/README.md): [manual do usuário](docs/usuario.md), [configuração e operação](docs/configuracao.md), [segurança](docs/seguranca.md), [referência da API](docs/api.md), [arquitetura](docs/arquitetura.md), [guia de desenvolvimento](docs/desenvolvimento.md) e [decisões (ADRs)](docs/adr/README.md). Histórico em [CHANGELOG.md](CHANGELOG.md).
+
 ## Recursos
 
 - Login com autenticação SQL Server (servidor, usuário e senha)
@@ -47,6 +51,10 @@ php -S localhost:8080 -t public
 ```
 
 Em Apache/Nginx, aponte o document root para `public/` (há um `.htaccess` com o rewrite para o front controller).
+
+### IIS, com o projeto inteiro numa pasta (sem apontar para `public/`)
+
+Copie o projeto todo para a pasta do site e use o `index.php` da raiz. Cole o conteúdo de `deploy/iis-rewrite.xml` dentro de `<system.webServer>` do `web.config` (requer o módulo URL Rewrite): `assets/` sai de `public/assets/` e todo o resto vai para o `index.php`, então `app/`, `config/` e `tests/` não ficam expostos. O PHP do site precisa ser 8.2+ com `pdo_sqlsrv` e a pasta de sessões (`session.save_path`) gravável.
 
 ## Testes
 

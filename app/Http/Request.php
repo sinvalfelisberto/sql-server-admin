@@ -22,7 +22,9 @@ final readonly class Request
 
     public static function fromGlobals(): self
     {
-        $uri = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+        // No IIS o REQUEST_URI pode faltar; o URL Rewrite entrega a URL original em HTTP_X_ORIGINAL_URL.
+        $original = $_SERVER['REQUEST_URI'] ?? $_SERVER['HTTP_X_ORIGINAL_URL'] ?? $_SERVER['HTTP_X_REWRITE_URL'] ?? '/';
+        $uri = (string) parse_url($original, PHP_URL_PATH);
         $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
         $relative = ($base !== '' && str_starts_with($uri, $base)) ? substr($uri, strlen($base)) : $uri;
 
@@ -40,7 +42,7 @@ final readonly class Request
             $_POST,
             $headers,
             (string) file_get_contents('php://input'),
-            !empty($_SERVER['HTTPS']),
+            !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off', // IIS envia "off"
         );
     }
 
