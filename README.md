@@ -8,21 +8,67 @@ The full documentation is in [`docs/`](docs/README.md): [user manual](docs/user-
 
 ## Features
 
-- Login with SQL Server authentication (server, user and password)
-- Object Explorer with every database on the server (system databases are marked `SYS`), each with Tables, Views, Procedures and Functions; objects and columns load on demand and can be filtered
-- Context menu (right click) on databases, tables, views, procedures and functions:
-  - **Tables and views:** `SELECT TOP 100` (opens a new tab, lists every column and runs it), `SELECT *` without TOP (asks for confirmation first if the table has more than 100,000 rows), **View DDL**, **Table information** (approximate rows, space, indexes and foreign keys), copy name (qualified or plain) and **Refresh** for that node only
-  - **Databases:** new query (`USE [database]`), database DDL (collation and options), **Import data…** and refresh
-  - **Procedures and functions:** view DDL (definition), copy name and refresh
-- **Import data** (right-click a database): load a CSV or JSON file into an existing table (with column mapping) or a new one (types inferred), in atomic batches
-- Editor with syntax highlighting, line numbers and multiple tabs (saved in the browser)
-- Runs the selected text or the whole script; supports `GO` and multiple result sets
-- AUTO TOP, history, favorites, save as `.sql`, light/dark theme
-- Grid with sorting, filtering, pagination and export (copy, CSV, Excel, JSON); the CSV separator (`;`, `,`, tab or `|`) is selectable in the top bar, next to AUTO TOP
-- Server-side pagination (200 rows per page) for a single `SELECT`; export returns the complete query result, named `schema.table_ddMMyyyy.ext`
-- `PRINT` messages in the **Messages** tab
+### Connection and security
+- Sign in with SQL Server authentication (server, user and password); the server accepts `host`, `host\instance`, `host,port` or `host:port`, and an optional allowlist (`allowed_servers`) stops the app from being used as a network proxy
+- The password stays in the server-side PHP session and is never sent to the browser; `HttpOnly`/`SameSite=Strict` cookie, CSRF token on every POST, idle session timeout and security headers
+- Show/hide button on the password field; server pre-filled with `localhost,1433` (configurable)
 
-Shortcuts: `Ctrl+Enter` or `F5` run the query; double-clicking a table runs `SELECT TOP`; clicking a column inserts its name into the editor.
+### Object Explorer
+- Every database on the server (system databases marked `SYS`), each with Tables, Views, Procedures and Functions; objects and columns load on demand, with a filter and per-node refresh
+- Context menu (right click) on databases, tables, views, procedures and functions:
+  - **Tables and views:** `SELECT TOP 100` (opens a new tab listing every column and runs it), `SELECT *` without TOP (asks for confirmation first if the table has more than 100,000 rows), **View DDL**, **Table information** (approximate rows, space, indexes and foreign keys), copy qualified or plain name, **Refresh**
+  - **Databases:** new query (`USE [database]`), database DDL (collation and options), **Import data…**, refresh
+  - **Procedures and functions:** view DDL (definition), copy name, refresh
+- Double-click a table to run `SELECT TOP`; click a column to insert its name into the editor
+
+### Editor and execution
+- SQL editor with syntax highlighting, line numbers and multiple tabs (saved in the browser)
+- Runs the selected text or the whole script with `F5` or `Ctrl+Enter`; supports `GO` batches and multiple result sets
+- **Messages** tab with `PRINT` output, rows affected, errors and timing
+- AUTO TOP, query history (last 50), favorites, save as `.sql`, light/dark theme
+
+### Results grid and pagination
+- Sorting, filtering and a selectable page size; `NULL`, numeric and binary values are shown clearly
+- **Server-side pagination** (200 rows per page, `OFFSET/FETCH`) for a single `SELECT`, so neither the server nor the browser loads the whole result at once
+- Exact decimals (`decimal`, `numeric`, `money`) shown in the SQL standard, with a dot and at least two decimal places
+
+### Export
+- Copy, **CSV**, **Excel** (a real `.xlsx` built in the browser, with no dependencies) and **JSON**
+- For paginated results the export re-runs the query and returns the **complete result**, streamed by the server
+- Selectable CSV separator (`;`, `,`, tab or `|`) in the top bar, next to AUTO TOP
+- Files named `schema.table_ddMMyyyy.ext`
+
+### Import
+- **Import data…** (right-click a database): load a **CSV** or **JSON** file into an existing table (with column mapping) or a new one (types inferred and editable)
+- Delimiter auto-detection, quoted CSV cells, empty values as `NULL`, progress bar, atomic batches with resume, and a summary window when it finishes
+
+### Deployment
+- Docker image (PHP 8.3, Apache, ODBC Driver 18, `pdo_sqlsrv`) with an optional demo SQL Server; also runs on Apache, Nginx and IIS, including with the whole project in a single folder
+- No Composer and no front-end build: plain PHP, HTML, CSS and JavaScript
+
+## Screenshots
+
+The screenshots below use demo data.
+
+**Sign in** — server pre-filled, with a show/hide button on the password field:
+
+![Login screen](docs/images/login.jpg)
+
+**Editor and results** — `SELECT TOP 100` lists every column; the grid is paginated on the server (200 rows per page) and exact decimals are shown with two decimal places. Export buttons (Copy, CSV, Excel, JSON) sit above the grid, and the CSV separator is in the top bar:
+
+![Query editor and paginated results grid](docs/images/results.jpg)
+
+**Object Explorer context menus** — database menu (left, with **Import data…**) and table menu (right):
+
+![Context menus for a database and a table](docs/images/context-menus.jpg)
+
+**Import data** — load a CSV or JSON file into an existing table, with automatic column mapping:
+
+![Import data dialog](docs/images/import-dialog.jpg)
+
+**Import completed** — summary window shown at the end of an import:
+
+![Import completed window](docs/images/import-completed.jpg)
 
 ## Requirements
 
