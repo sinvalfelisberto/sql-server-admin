@@ -1,0 +1,516 @@
+# =============================================================================
+# Segredos e configuração local
+# =============================================================================
+.env
+.env.*
+!.env.example
+!.env.sample
+*.local
+secrets.*
+*.secret
+*.secrets
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+local.settings.json
+config.local.*
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+*.cer
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+credentials.json
+service-account*.json
+*.publishsettings
+*.pubxml.user
+connectionstrings.json
+
+# =============================================================================
+# Banco de dados: backups, dumps e arquivos locais
+# =============================================================================
+*.bak
+*.trn
+*.mdf
+*.ndf
+*.ldf
+*.bacpac
+*.dacpac
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sdf
+*.mdb
+*.accdb
+*.dump
+*.sql.gz
+*.sql.zip
+*.sql.bz2
+dump*.sql
+backup*.sql
+*_backup.sql
+*.sqlplan
+*.xel
+*.trc
+
+# Dados de volumes do Docker (ex.: SQL Server em container)
+mssql/
+mssql-data/
+sqlserver-data/
+.data/
+pgdata/
+mysql-data/
+
+# =============================================================================
+# Logs e arquivos temporários
+# =============================================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.bak~
+*.orig
+*.rej
+tmp/
+temp/
+.cache/
+.tmp/
+
+# =============================================================================
+# Node.js / JavaScript / TypeScript
+# =============================================================================
+node_modules/
+jspm_packages/
+bower_components/
+.npm
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+.eslintcache
+.stylelintcache
+.node_repl_history
+*.tgz
+.parcel-cache
+.rpt2_cache/
+.rts2_cache_*/
+.vite/
+.turbo/
+.vercel
+.netlify
+.next/
+out/
+.nuxt/
+.output/
+.svelte-kit/
+.angular/
+.docusaurus/
+.expo/
+.serverless/
+.fusebox/
+.dynamodb/
+*.tsbuildinfo
+dist/
+build/
+coverage/
+.nyc_output/
+lib-cov/
+storybook-static/
+
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+virtualenv/
+.python-version
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg
+*.egg-info/
+.eggs/
+eggs/
+sdist/
+wheels/
+develop-eggs/
+parts/
+var/
+downloads/
+lib64/
+.installed.cfg
+MANIFEST
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.pyre/
+.tox/
+.nox/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+cover/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+celerybeat-schedule
+celerybeat.pid
+instance/
+.webassets-cache
+.scrapy
+docs/_build/
+target/
+.pdm.toml
+__pypackages__/
+.pybuilder/
+poetry.toml
+
+# Django / Flask
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# =============================================================================
+# .NET / C# / Visual Studio
+# =============================================================================
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.rsuser
+*.pdb
+*.ilk
+*.obj
+*.exe
+*.dll
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+publish/
+PublishScripts/
+csx/
+*.build.csdef
+ecf/
+rcf/
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+_UpgradeReport_Files/
+Backup*/
+UpgradeLog*.XML
+UpgradeLog*.htm
+*.[Cc]ache
+!?*.[Cc]ache/
+*_i.c
+*_p.c
+*_h.h
+*.meta
+*.iobj
+*.ipdb
+*.pch
+*.tlb
+*.tli
+*.tlh
+*.tmp_proj
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+*.testsettings
+*.VisualState.xml
+.localhistory/
+.ionide/
+BenchmarkDotNet.Artifacts/
+ClientBin/
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+*.pfx
+*.publishsettings
+orleans.codegen.cs
+ServiceFabricBackup/
+*.rptproj.bak
+*.rptproj.rsuser
+*- [Bb]ackup.rdl
+*- [Bb]ackup ([0-9]).rdl
+*- [Bb]ackup ([0-9][0-9]).rdl
+.axoCover/*
+!.axoCover/settings.json
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+coverage*.info
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+.JustCode
+_TeamCity*
+*.dotCover
+nCrunchTemp_*
+.mfractor/
+.ntvs_analysis.dat
+MigrationBackup/
+.fake/
+.cr/personal
+__pycache__/
+
+# SQL Server Data Tools / SSIS / SSRS / SSAS
+*.dtproj.user
+*.database.xml
+*.jfm
+*.ssmssqlproj.user
+*.sqlproj.user
+*.rdl.data
+*.rds.bak
+*.schemaview
+Generated_Code/
+ModelManifest.xml
+~$*
+
+# =============================================================================
+# PHP / Composer
+# =============================================================================
+vendor/
+composer.phar
+.phpunit.result.cache
+.phpunit.cache/
+.php-cs-fixer.cache
+.php_cs.cache
+.phpcs-cache
+phpstan.neon
+.phpstorm.meta.php
+_ide_helper.php
+_ide_helper_models.php
+storage/*.key
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+public/hot
+public/storage
+Homestead.json
+Homestead.yaml
+
+# =============================================================================
+# Java / Kotlin / Gradle / Maven
+# =============================================================================
+.gradle/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+replay_pid*
+
+# =============================================================================
+# Go / Rust / Ruby (por garantia)
+# =============================================================================
+*.test
+*.out
+go.work
+Cargo.lock.bak
+.bundle/
+*.gem
+.byebug_history
+
+# =============================================================================
+# Docker / Infraestrutura
+# =============================================================================
+docker-compose.override.yml
+docker-compose.override.yaml
+.docker/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+.terraform.lock.hcl
+.vagrant/
+.ansible/
+*.retry
+
+# =============================================================================
+# Electron / Desktop
+# =============================================================================
+release-builds/
+app-builds/
+*.asar
+*.dmg
+*.AppImage
+*.msi
+*.deb
+*.rpm
+*.snap
+
+# =============================================================================
+# IDEs e editores
+# =============================================================================
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+*.code-workspace
+.history/
+.fleet/
+.project
+.classpath
+.settings/
+.metadata/
+*.sublime-project
+*.sublime-workspace
+.atom/
+.brackets.json
+*.komodoproject
+.vim/
+Session.vim
+.netrwhist
+tags
+.cursor/
+.windsurf/
+.zed/
+
+# =============================================================================
+# Sistemas operacionais
+# =============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.VolumeIcon.icns
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+[Dd]esktop.ini
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+*.desktop.bak
+
+# =============================================================================
+# Ferramentas de IA / assistentes
+# =============================================================================
+.claude/settings.local.json
+.claude/cache/
+CLAUDE.local.md
+
+# =============================================================================
+# Arquivos compactados e artefatos diversos
+# =============================================================================
+*.7z
+*.rar
+*.zip
+*.tar
+*.tar.gz
+*.gz
+*.bz2
+*.xz
+*.iso
+*.pid
+*.pid.lock
+*.seed
+.sass-cache/
+.eslintcache
+.dev.vars
+.wrangler/
+
+# =============================================================================
+# Exceções (mantém arquivos de exemplo versionados)
+# =============================================================================
+!.env.example
+!.env.sample
+!*.example
+!*.sample
+!*.template
