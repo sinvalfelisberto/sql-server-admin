@@ -6,15 +6,15 @@ namespace App\Models;
 use App\Support\Result;
 
 /** Credentials and target of a SQL Server connection. Immutable. */
-final readonly class Connection
+final class Connection
 {
     public function __construct(
-        public string $server,
-        public string $user,
-        public string $password,
-        public bool $trustCertificate,
-        public string $display,
-        public string $database = '',
+        public readonly string $server,
+        public readonly string $user,
+        public readonly string $password,
+        public readonly bool $trustCertificate,
+        public readonly string $display,
+        public readonly string $database = '',
     ) {
     }
 

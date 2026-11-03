@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 /** Immutable result of running a script. */
-final readonly class QueryResult
+final class QueryResult
 {
     /**
      * @param list<array{columns:list<array>,rows:list<array>,truncated:bool}> $sets
@@ -13,11 +13,11 @@ final readonly class QueryResult
      * @param ?array{page:int,size:int,hasMore:bool} $page present when the result is a page paginated on the server
      */
     public function __construct(
-        public array $sets,
-        public array $messages,
-        public ?array $error,
-        public int $elapsedMs,
-        public ?array $page = null,
+        public readonly array $sets,
+        public readonly array $messages,
+        public readonly ?array $error,
+        public readonly int $elapsedMs,
+        public readonly ?array $page = null,
     ) {
     }
 

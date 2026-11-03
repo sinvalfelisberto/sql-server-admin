@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Core;
 
-final readonly class Config
+final class Config
 {
     /** Environment variable => [config key, type]. */
     private const ENV_MAP = [
@@ -18,7 +18,7 @@ final readonly class Config
         'SQLWM_SESSION_TIMEOUT'          => ['session_timeout', 'int'],
     ];
 
-    public function __construct(private array $values)
+    public function __construct(private readonly array $values)
     {
     }
 

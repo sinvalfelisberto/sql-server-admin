@@ -4,19 +4,19 @@ declare(strict_types=1);
 namespace App\Http;
 
 /** Immutable HTTP request. */
-final readonly class Request
+final class Request
 {
     /**
      * @param array<string, string> $headers names in lower case
      */
     public function __construct(
-        public string $method,
-        public string $path,
-        public string $basePath,
-        public array $post,
-        public array $headers,
-        public string $rawBody,
-        public bool $secure,
+        public readonly string $method,
+        public readonly string $path,
+        public readonly string $basePath,
+        public readonly array $post,
+        public readonly array $headers,
+        public readonly string $rawBody,
+        public readonly bool $secure,
     ) {
     }
 

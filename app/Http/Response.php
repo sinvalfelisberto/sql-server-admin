@@ -4,13 +4,13 @@ declare(strict_types=1);
 namespace App\Http;
 
 /** Immutable HTTP response: every change returns a new instance. $body may be a Closure that writes the output incrementally (large downloads). */
-final readonly class Response
+final class Response
 {
     /** @param array<string, string> $headers */
     public function __construct(
-        public int $status = 200,
-        public string|\Closure $body = '',
-        public array $headers = [],
+        public readonly int $status = 200,
+        public readonly string|\Closure $body = '',
+        public readonly array $headers = [],
     ) {
     }
 

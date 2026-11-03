@@ -7,9 +7,9 @@ namespace App\Support;
  * Immutable Either: success (ok) or failure (err). Lets you chain validations
  * without exceptions and without nested ifs.
  */
-final readonly class Result
+final class Result
 {
-    private function __construct(private bool $success, private mixed $value)
+    private function __construct(private readonly bool $success, private readonly mixed $value)
     {
     }
 
