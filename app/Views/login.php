@@ -13,6 +13,12 @@
 
     <input type="hidden" name="csrf" value="<?= $e($csrf) ?>">
 
+    <label id="recent-wrap" hidden>Saved connections
+        <span class="recent-row">
+            <select id="recent" aria-label="Saved connections"></select>
+            <button type="button" class="btn ghost" id="recent-remove" title="Remove from saved connections" hidden>Remove</button>
+        </span>
+    </label>
     <label>Server
         <input name="server" value="<?= $e($server) ?>" placeholder="host, host\instance or host:port" required autofocus>
     </label>

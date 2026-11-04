@@ -88,7 +88,7 @@ final class AuthController
             'server'    => $server,
             'user'      => $user,
             'trust'     => $trust,
-            'scripts'   => ['assets/js/login.js'],
+            'scripts'   => ['assets/js/recent-connections.js', 'assets/js/login.js'],
         ]));
     }
 }

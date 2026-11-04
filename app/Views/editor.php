@@ -2,7 +2,7 @@
 /** @var array $data */
 ['e' => $e, 'version' => $version, 'connection' => $connection, 'csvSeparator' => $csvSeparator] = $data;
 ?>
-<div id="app">
+<div id="app" data-recent-server="<?= $e($connection->display) ?>" data-recent-user="<?= $e($connection->user) ?>">
 
     <header class="toolbar">
         <button class="icon-btn" id="btn-sidebar" title="Toggle Object Explorer" aria-label="Toggle Object Explorer">

@@ -278,6 +278,9 @@ table.grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .login-card label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
 .login-card label.check { flex-direction: row; align-items: center; gap: 8px; }
 .login-card .btn { justify-content: center; padding: 10px; }
+[hidden] { display: none !important; }
+.recent-row { display: flex; gap: 6px; }
+.recent-row select { flex: 1; min-width: 0; }
 .pass-wrap { position: relative; display: flex; }
 .pass-wrap input { flex: 1; min-width: 0; padding-right: 40px; }
 .pass-toggle { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); color: var(--muted); }
